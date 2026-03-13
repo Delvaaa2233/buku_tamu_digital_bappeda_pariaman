@@ -33,11 +33,11 @@ if menu == "Halaman Utama":
     maksud = st.text_area("Maksud Kunjungan")
     kesan = st.text_area("Kesan dan Pesan")
 
-    # 🔹 Tambahan fitur Kamera
+    # 🔹 Fitur Kamera
     st.subheader("📷 Ambil Foto")
     foto = st.camera_input("Ambil foto tamu")
 
-    # 🔹 Tambahan fitur Tanda Tangan
+    # 🔹 Fitur Tanda Tangan
     st.subheader("✍️ Tanda Tangan Digital")
     canvas_result = st_canvas(
         fill_color="rgba(255, 255, 255, 0)",
@@ -86,6 +86,29 @@ elif menu == "Daftar Buku Tamu":
     st.header("📑 Daftar Buku Tamu")
     if not df.empty:
         st.dataframe(df)
+
+        # 🔹 Fitur Delete Data Tamu (berdasarkan index)
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Index")
+        index_to_delete = st.number_input(
+            "Masukkan nomor index tamu yang ingin dihapus (mulai dari 0)",
+            min_value=0,
+            max_value=len(df)-1,
+            step=1
+        )
+        if st.button("Delete by Index"):
+            df = df.drop(index_to_delete).reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan index {index_to_delete} berhasil dihapus!")
+
+        # 🔹 Fitur Delete Data Tamu (berdasarkan nama)
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Nama")
+        nama_to_delete = st.selectbox("Pilih nama tamu yang ingin dihapus", df["nama_lengkap"].unique())
+        if st.button("Delete by Name"):
+            df = df[df["nama_lengkap"] != nama_to_delete].reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
+
+        # 🔹 Export PDF
         if st.button("Export PDF"):
             pdf = FPDF()
             pdf.add_page()
