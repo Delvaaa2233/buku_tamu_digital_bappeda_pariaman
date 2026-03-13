@@ -19,6 +19,7 @@ st.set_page_config(
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1c3DA7X56NbbeZyOFnfBFG8ZdxX-JZd9Ml372xvAA80o/edit#gid=0"
 
 # --- KONEKSI DATABASE ---
+# Menggunakan konfigurasi dari secrets atau URL langsung
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data(sheet_name):
@@ -146,7 +147,12 @@ if menu == "🏠 Form Buku Tamu":
                 
                 try:
                     df_new = pd.DataFrame([entry_data])
-                    updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
+                    # Menggabungkan data hanya jika data lama tidak kosong
+                    if not df_tamu.empty:
+                        updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
+                    else:
+                        updated_df = df_new
+                        
                     conn.update(spreadsheet=SHEET_URL, worksheet="data_tamu", data=updated_df)
                     
                     st.success("✅ Data berhasil disimpan!")
@@ -164,7 +170,7 @@ elif menu == "📊 Statistik":
         fig = px.pie(df_tamu, names='bidang_tujuan', hole=0.4, title="Distribusi Tujuan Kunjungan")
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("Data belum tersedia.")
+        st.warning("Data statistik belum tersedia.")
 
 elif menu == "📋 Riwayat":
     st.title("Daftar Kunjungan")
@@ -176,4 +182,33 @@ elif menu == "📋 Riwayat":
 elif menu == "📂 Laporan":
     st.title("📂 Rekapitulasi Laporan")
     if df_tamu.empty:
-        st.warning("Data tidak
+        st.warning("Data laporan tidak ditemukan.")
+    else:
+        df_tamu['tanggal_dt'] = pd.to_datetime(df_tamu['tanggal'], errors='coerce')
+        tab_h, tab_b, tab_t = st.tabs(["📅 Harian", "📅 Bulanan", "📅 Tahunan"])
+        
+        with tab_h:
+            sel_date = st.date_input("Pilih Tanggal", value=datetime.date.today())
+            df_h = df_tamu[df_tamu['tanggal_dt'].dt.date == sel_date]
+            st.dataframe(df_h, use_container_width=True)
+            if not df_h.empty:
+                pdf_h = create_pdf(df_h, is_report=True, title=f"LAPORAN HARIAN - {sel_date}")
+                st.download_button("📥 Export PDF Harian", pdf_h, f"Laporan_Harian_{sel_date}.pdf", "application/pdf")
+
+        with tab_b:
+            c1, c2 = st.columns(2)
+            with c1: sel_m = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month-1)
+            with c2: sel_y = st.selectbox("Tahun", range(2024, 2031), index=datetime.date.today().year-2024)
+            df_b = df_tamu[(df_tamu['tanggal_dt'].dt.month == sel_m) & (df_tamu['tanggal_dt'].dt.year == sel_y)]
+            st.dataframe(df_b, use_container_width=True)
+            if not df_b.empty:
+                pdf_b = create_pdf(df_b, is_report=True, title=f"LAPORAN BULANAN - {sel_m}/{sel_y}")
+                st.download_button("📥 Export PDF Bulanan", pdf_b, f"Laporan_Bulanan_{sel_m}_{sel_y}.pdf", "application/pdf")
+
+        with tab_t:
+            sel_yt = st.selectbox("Tahun Laporan", range(2024, 2031), index=datetime.date.today().year-2024)
+            df_t = df_tamu[df_tamu['tanggal_dt'].dt.year == sel_yt]
+            st.dataframe(df_t, use_container_width=True)
+            if not df_t.empty:
+                pdf_t = create_pdf(df_t, is_report=True, title=f"LAPORAN TAHUNAN - {sel_yt}")
+                st.download_button("📥 Export PDF Tahunan", pdf_t, f"Laporan_Tahunan_{sel_yt}.pdf", "application/pdf")
