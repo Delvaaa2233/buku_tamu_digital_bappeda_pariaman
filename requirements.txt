@@ -1,9 +1,6 @@
 streamlit
 pandas
-st-gsheets-connection
-streamlit-drawable-canvas
-streamlit-js-eval
-plotly
+openpyxl
+matplotlib
 fpdf
-gspread
-oauth2client
+streamlit-drawable-canvas
