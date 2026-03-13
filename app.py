@@ -4,6 +4,7 @@ from datetime import datetime
 from fpdf import FPDF
 from streamlit_drawable_canvas import st_canvas
 import os
+from PIL import Image
 
 DATA_FILE = "data.xlsx"
 FOTO_DIR = "foto_tamu"
@@ -15,14 +16,17 @@ if not os.path.exists(FOTO_DIR):
 # Load data
 try:
     df = pd.read_excel(DATA_FILE, engine="openpyxl")
+    # 🔹 Pastikan kolom tanggal jadi datetime
+    if not df.empty and df["tanggal"].dtype == "object":
+        df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
 except FileNotFoundError:
     df = pd.DataFrame(columns=[
         "tanggal", "tanggal_spt", "nama_lengkap", "nip", "jabatan", "opd",
         "nomor_hp", "bidang_tujuan", "maksud_kunjungan", "foto", "tanda_tangan", "kesan_pesan"
     ])
 
-# Sidebar menu
-menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu", "Laporan"])
+# Sidebar menu (hapus menu Laporan)
+menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu"])
 
 # Halaman Utama
 if menu == "Halaman Utama":
@@ -67,7 +71,6 @@ if menu == "Halaman Utama":
     tanda_tangan_path = ""
     if canvas_result.image_data is not None and nama:
         tanda_filename = f"{FOTO_DIR}/ttd_{nama}_{tanggal}.png"
-        from PIL import Image
         Image.fromarray(canvas_result.image_data.astype("uint8")).save(tanda_filename)
         tanda_tangan_path = tanda_filename
 
@@ -90,6 +93,20 @@ if menu == "Halaman Utama":
         df.to_excel(DATA_FILE, index=False)
         st.success("Data berhasil disimpan!")
 
+# Ringkasan Statistik
+elif menu == "Ringkasan Statistik":
+    st.header("📊 Ringkasan Statistik")
+    if not df.empty:
+        today = datetime.today().date()
+        # Pastikan kolom tanggal sudah datetime
+        df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
+
+        st.write(f"Tamu hari ini: {len(df[df['tanggal'].dt.date == today])}")
+        st.write(f"Tamu bulan ini: {len(df[df['tanggal'].dt.month == today.month])}")
+        st.write(f"Tamu tahun ini: {len(df[df['tanggal'].dt.year == today.year])}")
+    else:
+        st.info("Belum ada data tamu.")
+
 # Daftar Buku Tamu
 elif menu == "Daftar Buku Tamu":
     st.header("📑 Daftar Buku Tamu")
@@ -106,7 +123,7 @@ elif menu == "Daftar Buku Tamu":
                 st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
             st.write("---")
 
-        # 🔹 Fitur Delete Data Tamu (index & nama)
+        # 🔹 Fitur Delete Data Tamu
         st.subheader("🗑️ Hapus Data Tamu berdasarkan Index")
         index_to_delete = st.number_input("Masukkan nomor index tamu", min_value=0, max_value=len(df)-1, step=1)
         if st.button("Delete by Index"):
@@ -132,5 +149,3 @@ elif menu == "Daftar Buku Tamu":
             st.success("PDF berhasil dibuat!")
     else:
         st.info("Belum ada data tamu.")
-
-
