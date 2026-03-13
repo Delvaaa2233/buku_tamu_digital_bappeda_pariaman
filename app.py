@@ -15,6 +15,7 @@ st.set_page_config(
 )
 
 # --- KONFIGURASI GOOGLE SHEETS ---
+# Pastikan URL ini sesuai dengan spreadsheet yang sudah di-share ke service account
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1c3DA7X56NbbeZyOFnfBFG8ZdxX-JZd9Ml372xvAA80o/edit#gid=0"
 
 # --- KONEKSI DATABASE ---
@@ -22,7 +23,7 @@ conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data(sheet_name):
     try:
-        # Mengambil data dengan menyertakan URL agar tidak error "Spreadsheet must be specified"
+        # Membaca data real-time dengan ttl=0
         return conn.read(spreadsheet=SHEET_URL, worksheet=sheet_name, ttl=0)
     except Exception as e:
         st.error(f"Gagal memuat data {sheet_name}: {e}")
@@ -43,7 +44,7 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf.set_font("Arial", size=11)
     
     if not is_report:
-        # PDF untuk Tanda Terima Perorangan (Berdasarkan image_86291d.png)
+        # Format PDF untuk Tanda Terima Perorangan
         fields = {
             "ID Registrasi": data.get('id', '-'),
             "Waktu": data.get('timestamp', '-'),
@@ -56,7 +57,7 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
             pdf.cell(50, 10, txt=f"{label}:", border=0)
             pdf.cell(140, 10, txt=f"{val}", border=0, ln=True)
     else:
-        # PDF untuk Laporan Tabel
+        # Format PDF untuk Tabel Laporan
         pdf.set_font("Arial", 'B', 9)
         col_widths = [25, 45, 40, 80]
         headers = ["Tanggal", "Nama", "Instansi", "Maksud"]
@@ -86,7 +87,7 @@ with st.sidebar:
     st.title("Sistem BAPPEDA")
     menu = st.radio("Navigasi:", ["🏠 Form Buku Tamu", "📊 Statistik", "📋 Riwayat", "📂 Laporan"])
 
-# --- LOGIKA MENU ---
+# --- MENU UTAMA ---
 if menu == "🏠 Form Buku Tamu":
     st.markdown("""
         <div style='background: linear-gradient(135deg, #004a99 0%, #0072ff 100%); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;'>
@@ -124,7 +125,6 @@ if menu == "🏠 Form Buku Tamu":
                 st.error("Mohon lengkapi kolom yang wajib diisi (*)")
             else:
                 entry_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
-                # Sesuaikan urutan kolom dengan image_862525.png
                 entry_data = {
                     "id": entry_id,
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
@@ -140,70 +140,40 @@ if menu == "🏠 Form Buku Tamu":
                     "kesan_pesan": kesan,
                     "foto_url": "Terlampir",
                     "tanda_tangan_url": "Terlampir",
-                    "latitude": "Bypass",
-                    "longitude": "Bypass"
+                    "latitude": "Offline",
+                    "longitude": "Offline"
                 }
                 
                 try:
                     df_new = pd.DataFrame([entry_data])
-                    # Update ke Google Sheets
                     updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
                     conn.update(spreadsheet=SHEET_URL, worksheet="data_tamu", data=updated_df)
                     
                     st.success("✅ Data berhasil disimpan!")
                     st.balloons()
                     
-                    # PDF Download
+                    # Generate PDF
                     pdf_bytes = create_pdf(entry_data)
                     st.download_button("📥 Unduh Tanda Terima (PDF)", pdf_bytes, f"Tanda_Terima_{entry_id}.pdf", "application/pdf")
                 except Exception as e:
-                    st.error(f"Gagal menyimpan: {e}")
+                    st.error(f"Gagal menyimpan ke Google Sheets: {e}")
 
 elif menu == "📊 Statistik":
     st.title("Statistik Pengunjung")
     if not df_tamu.empty:
-        fig = px.pie(df_tamu, names='bidang_tujuan', hole=0.4, title="Tujuan Kunjungan")
+        fig = px.pie(df_tamu, names='bidang_tujuan', hole=0.4, title="Distribusi Tujuan Kunjungan")
         st.plotly_chart(fig, use_container_width=True)
     else:
-        st.warning("Belum ada data.")
+        st.warning("Data belum tersedia.")
 
 elif menu == "📋 Riwayat":
     st.title("Daftar Kunjungan")
     if not df_tamu.empty:
         st.dataframe(df_tamu.sort_values(by='timestamp', ascending=False), use_container_width=True)
     else:
-        st.info("Riwayat kosong.")
+        st.info("Belum ada riwayat kunjungan.")
 
 elif menu == "📂 Laporan":
     st.title("📂 Rekapitulasi Laporan")
     if df_tamu.empty:
-        st.warning("Data tidak tersedia.")
-    else:
-        df_tamu['tanggal_dt'] = pd.to_datetime(df_tamu['tanggal'])
-        tab_h, tab_b, tab_t = st.tabs(["📅 Harian", "📅 Bulanan", "📅 Tahunan"])
-        
-        with tab_h:
-            sel_date = st.date_input("Pilih Tanggal", value=datetime.date.today())
-            df_h = df_tamu[df_tamu['tanggal_dt'].dt.date == sel_date]
-            st.dataframe(df_h, use_container_width=True)
-            if not df_h.empty:
-                pdf_h = create_pdf(df_h, is_report=True, title=f"LAPORAN HARIAN - {sel_date}")
-                st.download_button("📥 Export PDF Harian", pdf_h, f"Laporan_Harian_{sel_date}.pdf", "application/pdf")
-
-        with tab_b:
-            c1, c2 = st.columns(2)
-            with c1: sel_m = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month-1)
-            with c2: sel_y = st.selectbox("Tahun", range(2024, 2031), index=1)
-            df_b = df_tamu[(df_tamu['tanggal_dt'].dt.month == sel_m) & (df_tamu['tanggal_dt'].dt.year == sel_y)]
-            st.dataframe(df_b, use_container_width=True)
-            if not df_b.empty:
-                pdf_b = create_pdf(df_b, is_report=True, title=f"LAPORAN BULANAN - {sel_m}/{sel_y}")
-                st.download_button("📥 Export PDF Bulanan", pdf_b, f"Laporan_Bulanan_{sel_m}_{sel_y}.pdf", "application/pdf")
-
-        with tab_t:
-            sel_yt = st.selectbox("Pilih Tahun", range(2024, 2031), index=1)
-            df_t = df_tamu[df_tamu['tanggal_dt'].dt.year == sel_yt]
-            st.dataframe(df_t, use_container_width=True)
-            if not df_t.empty:
-                pdf_t = create_pdf(df_t, is_report=True, title=f"LAPORAN TAHUNAN - {sel_yt}")
-                st.download_button("📥 Export PDF Tahunan", pdf_t, f"Laporan_Tahunan_{sel_yt}.pdf", "application/pdf")
+        st.warning("Data tidak
