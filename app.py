@@ -133,7 +133,4 @@ elif menu == "Daftar Buku Tamu":
     else:
         st.info("Belum ada data tamu.")
 
-# Menu Laporan (tetap sama seperti versi sebelumnya)
-elif menu == "Laporan":
-    st.header("📊 Laporan")
-    # ... (blok laporan harian, bulanan, tahunan + export PDF tetap sama)
+
