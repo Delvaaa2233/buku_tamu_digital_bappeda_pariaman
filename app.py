@@ -1,7 +1,8 @@
 import streamlit as st
 import pandas as pd
 import datetime
-from streamlit_gsheets import GSheetsConnection
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
 from streamlit_drawable_canvas import st_canvas
 import plotly.express as px
 from fpdf import FPDF
@@ -15,20 +16,38 @@ st.set_page_config(
 )
 
 # --- KONFIGURASI GOOGLE SHEETS ---
-# Pastikan URL ini sesuai dengan spreadsheet yang sudah di-share ke service account
 SHEET_URL = "https://docs.google.com/spreadsheets/d/1c3DA7X56NbbeZyOFnfBFG8ZdxX-JZd9Ml372xvAA80o/edit#gid=0"
 
 # --- KONEKSI DATABASE ---
-# Menggunakan konfigurasi dari secrets atau URL langsung
-conn = st.connection("gsheets", type=GSheetsConnection)
+scope = ["https://spreadsheets.google.com/feeds",
+         "https://www.googleapis.com/auth/drive"]
+
+# Lokal: credential.json ada di folder project
+creds = ServiceAccountCredentials.from_json_keyfile_name("credential.json", scope)
+
+# Kalau di Streamlit Cloud, pakai Secrets Manager:
+# import json
+# creds_dict = json.loads(st.secrets["gcp_service_account"])
+# creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+
+client = gspread.authorize(creds)
 
 def load_data(sheet_name):
     try:
-        # Membaca data real-time dengan ttl=0
-        return conn.read(spreadsheet=SHEET_URL, worksheet=sheet_name, ttl=0)
+        sheet = client.open_by_url(SHEET_URL).worksheet(sheet_name)
+        data = sheet.get_all_records()
+        return pd.DataFrame(data)
     except Exception as e:
         st.error(f"Gagal memuat data {sheet_name}: {e}")
         return pd.DataFrame()
+
+def update_data(sheet_name, df):
+    try:
+        sheet = client.open_by_url(SHEET_URL).worksheet(sheet_name)
+        sheet.clear()
+        sheet.update([df.columns.values.tolist()] + df.values.tolist())
+    except Exception as e:
+        st.error(f"Gagal update data {sheet_name}: {e}")
 
 def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf = FPDF()
@@ -45,7 +64,6 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf.set_font("Arial", size=11)
     
     if not is_report:
-        # Format PDF untuk Tanda Terima Perorangan
         fields = {
             "ID Registrasi": data.get('id', '-'),
             "Waktu": data.get('timestamp', '-'),
@@ -58,7 +76,6 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
             pdf.cell(50, 10, txt=f"{label}:", border=0)
             pdf.cell(140, 10, txt=f"{val}", border=0, ln=True)
     else:
-        # Format PDF untuk Tabel Laporan
         pdf.set_font("Arial", 'B', 9)
         col_widths = [25, 45, 40, 80]
         headers = ["Tanggal", "Nama", "Instansi", "Maksud"]
@@ -147,18 +164,16 @@ if menu == "🏠 Form Buku Tamu":
                 
                 try:
                     df_new = pd.DataFrame([entry_data])
-                    # Menggabungkan data hanya jika data lama tidak kosong
                     if not df_tamu.empty:
                         updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
                     else:
                         updated_df = df_new
                         
-                    conn.update(spreadsheet=SHEET_URL, worksheet="data_tamu", data=updated_df)
+                    update_data("data_tamu", updated_df)
                     
                     st.success("✅ Data berhasil disimpan!")
                     st.balloons()
                     
-                    # Generate PDF
                     pdf_bytes = create_pdf(entry_data)
                     st.download_button("📥 Unduh Tanda Terima (PDF)", pdf_bytes, f"Tanda_Terima_{entry_id}.pdf", "application/pdf")
                 except Exception as e:
@@ -175,40 +190,4 @@ elif menu == "📊 Statistik":
 elif menu == "📋 Riwayat":
     st.title("Daftar Kunjungan")
     if not df_tamu.empty:
-        st.dataframe(df_tamu.sort_values(by='timestamp', ascending=False), use_container_width=True)
-    else:
-        st.info("Belum ada riwayat kunjungan.")
-
-elif menu == "📂 Laporan":
-    st.title("📂 Rekapitulasi Laporan")
-    if df_tamu.empty:
-        st.warning("Data laporan tidak ditemukan.")
-    else:
-        df_tamu['tanggal_dt'] = pd.to_datetime(df_tamu['tanggal'], errors='coerce')
-        tab_h, tab_b, tab_t = st.tabs(["📅 Harian", "📅 Bulanan", "📅 Tahunan"])
-        
-        with tab_h:
-            sel_date = st.date_input("Pilih Tanggal", value=datetime.date.today())
-            df_h = df_tamu[df_tamu['tanggal_dt'].dt.date == sel_date]
-            st.dataframe(df_h, use_container_width=True)
-            if not df_h.empty:
-                pdf_h = create_pdf(df_h, is_report=True, title=f"LAPORAN HARIAN - {sel_date}")
-                st.download_button("📥 Export PDF Harian", pdf_h, f"Laporan_Harian_{sel_date}.pdf", "application/pdf")
-
-        with tab_b:
-            c1, c2 = st.columns(2)
-            with c1: sel_m = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month-1)
-            with c2: sel_y = st.selectbox("Tahun", range(2024, 2031), index=datetime.date.today().year-2024)
-            df_b = df_tamu[(df_tamu['tanggal_dt'].dt.month == sel_m) & (df_tamu['tanggal_dt'].dt.year == sel_y)]
-            st.dataframe(df_b, use_container_width=True)
-            if not df_b.empty:
-                pdf_b = create_pdf(df_b, is_report=True, title=f"LAPORAN BULANAN - {sel_m}/{sel_y}")
-                st.download_button("📥 Export PDF Bulanan", pdf_b, f"Laporan_Bulanan_{sel_m}_{sel_y}.pdf", "application/pdf")
-
-        with tab_t:
-            sel_yt = st.selectbox("Tahun Laporan", range(2024, 2031), index=datetime.date.today().year-2024)
-            df_t = df_tamu[df_tamu['tanggal_dt'].dt.year == sel_yt]
-            st.dataframe(df_t, use_container_width=True)
-            if not df_t.empty:
-                pdf_t = create_pdf(df_t, is_report=True, title=f"LAPORAN TAHUNAN - {sel_yt}")
-                st.download_button("📥 Export PDF Tahunan", pdf_t, f"Laporan_Tahunan_{sel_yt}.pdf", "application/pdf")
+        st.dataframe(df_t
