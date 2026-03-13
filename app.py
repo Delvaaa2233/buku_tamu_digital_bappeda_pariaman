@@ -16,7 +16,7 @@ except FileNotFoundError:
     ])
 
 # Sidebar menu
-menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu", "Laporan"])
+menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu"])
 
 # Halaman Utama
 if menu == "Halaman Utama":
@@ -108,7 +108,7 @@ elif menu == "Daftar Buku Tamu":
             df.to_excel(DATA_FILE, index=False)
             st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-        # 🔹 Export PDF daftar tamu
+        # 🔹 Export PDF
         if st.button("Export PDF"):
             pdf = FPDF()
             pdf.add_page()
@@ -117,67 +117,5 @@ elif menu == "Daftar Buku Tamu":
                 pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
             pdf.output("daftar_buku_tamu.pdf")
             st.success("PDF berhasil dibuat!")
-    else:
-        st.info("Belum ada data tamu.")
-
-# Menu Laporan
-elif menu == "Laporan":
-    st.header("📊 Laporan")
-
-    if not df.empty:
-        # Laporan Harian
-        st.subheader("📅 Laporan Harian")
-        tanggal_laporan = st.date_input("Pilih tanggal laporan")
-        if st.button("Generate Laporan Harian"):
-            laporan_harian = df[df["tanggal"] == tanggal_laporan]
-            st.write(laporan_harian)
-            st.write(f"Total tamu pada {tanggal_laporan}: {len(laporan_harian)}")
-
-            # Export PDF Harian
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"Laporan Harian {tanggal_laporan}", ln=True)
-            for i, row in laporan_harian.iterrows():
-                pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
-            pdf.output("laporan_harian.pdf")
-            st.success("PDF Laporan Harian berhasil dibuat!")
-
-        # Laporan Bulanan
-        st.subheader("📆 Laporan Bulanan")
-        bulan_laporan = st.selectbox("Pilih bulan laporan", range(1,13))
-        tahun_bulan = st.number_input("Masukkan tahun laporan", min_value=2000, max_value=2100, value=datetime.today().year)
-        if st.button("Generate Laporan Bulanan"):
-            laporan_bulanan = df[(df["tanggal"].dt.month == bulan_laporan) & (df["tanggal"].dt.year == tahun_bulan)]
-            st.write(laporan_bulanan)
-            st.write(f"Total tamu bulan {bulan_laporan}-{tahun_bulan}: {len(laporan_bulanan)}")
-
-            # Export PDF Bulanan
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"Laporan Bulanan {bulan_laporan}-{tahun_bulan}", ln=True)
-            for i, row in laporan_bulanan.iterrows():
-                pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
-            pdf.output("laporan_bulanan.pdf")
-            st.success("PDF Laporan Bulanan berhasil dibuat!")
-
-        # Laporan Tahunan
-        st.subheader("📆 Laporan Tahunan")
-        tahun_laporan = st.number_input("Masukkan tahun laporan tahunan", min_value=2000, max_value=2100, value=datetime.today().year)
-        if st.button("Generate Laporan Tahunan"):
-            laporan_tahunan = df[df["tanggal"].dt.year == tahun_laporan]
-            st.write(laporan_tahunan)
-            st.write(f"Total tamu tahun {tahun_laporan}: {len(laporan_tahunan)}")
-
-            # Export PDF Tahunan
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            pdf.cell(200, 10, txt=f"Laporan Tahunan {tahun_laporan}", ln=True)
-            for i, row in laporan_tahunan.iterrows():
-                pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
-            pdf.output("laporan_tahunan.pdf")
-            st.success("PDF Laporan Tahunan berhasil dibuat!")
     else:
         st.info("Belum ada data tamu.")
