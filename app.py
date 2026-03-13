@@ -1,6 +1,3 @@
-Oke, gua udah rapihin full file `app.py` lu biar pakai **gspread + credential.json** dan nggak ada lagi baris kepotong. Jadi tinggal copy-paste aja ke project lu:
-
-```python
 import streamlit as st
 import pandas as pd
 import datetime
@@ -25,14 +22,7 @@ SHEET_URL = "https://docs.google.com/spreadsheets/d/1c3DA7X56NbbeZyOFnfBFG8ZdxX-
 scope = ["https://spreadsheets.google.com/feeds",
          "https://www.googleapis.com/auth/drive"]
 
-# Lokal: credential.json ada di folder project
 creds = ServiceAccountCredentials.from_json_keyfile_name("credential.json", scope)
-
-# Kalau di Streamlit Cloud, pakai Secrets Manager:
-# import json
-# creds_dict = json.loads(st.secrets["gcp_service_account"])
-# creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
-
 client = gspread.authorize(creds)
 
 def load_data(sheet_name):
@@ -55,17 +45,14 @@ def update_data(sheet_name, df):
 def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf = FPDF()
     pdf.add_page()
-    
-    # Header Instansi
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, txt="BAPPEDA KOTA PARIAMAN", ln=True, align='C')
     pdf.set_font("Arial", size=12)
     pdf.cell(200, 10, txt=title, ln=True, align='C')
     pdf.line(10, 30, 200, 30)
     pdf.ln(10)
-    
     pdf.set_font("Arial", size=11)
-    
+
     if not is_report:
         fields = {
             "ID Registrasi": data.get('id', '-'),
@@ -85,7 +72,6 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
         for i, h in enumerate(headers):
             pdf.cell(col_widths[i], 10, h, border=1, align='C')
         pdf.ln()
-        
         pdf.set_font("Arial", size=8)
         for _, row in data.iterrows():
             pdf.cell(col_widths[0], 10, str(row['tanggal']), border=1)
@@ -129,10 +115,9 @@ if menu == "🏠 Form Buku Tamu":
             no_hp = st.text_input("Nomor HP*")
             bidang = st.selectbox("Tujuan Bidang*", ["Sekretariat", "Litbang & Evlap", "Pemerintahan & Sosbud", "Ekonomi", "Sarpras"])
             maksud = st.text_area("Maksud Kunjungan*")
-            
         kesan = st.text_area("Kesan & Pesan")
         foto = st.camera_input("Ambil Foto Verifikasi")
-        
+
         st.write("✍️ **Tanda Tangan**")
         canvas_result = st_canvas(
             stroke_width=2, stroke_color="#000", background_color="#fff",
@@ -140,7 +125,6 @@ if menu == "🏠 Form Buku Tamu":
         )
 
         submitted = st.form_submit_button("SIMPAN KUNJUNGAN")
-        
         if submitted:
             if not nama or not no_hp or not opd or not jabatan or not maksud:
                 st.error("Mohon lengkapi kolom yang wajib diisi (*)")
@@ -164,19 +148,15 @@ if menu == "🏠 Form Buku Tamu":
                     "latitude": "Offline",
                     "longitude": "Offline"
                 }
-                
                 try:
                     df_new = pd.DataFrame([entry_data])
                     if not df_tamu.empty:
                         updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
                     else:
                         updated_df = df_new
-                        
                     update_data("data_tamu", updated_df)
-                    
                     st.success("✅ Data berhasil disimpan!")
                     st.balloons()
-                    
                     pdf_bytes = create_pdf(entry_data)
                     st.download_button("📥 Unduh Tanda Terima (PDF)", pdf_bytes, f"Tanda_Terima_{entry_id}.pdf", "application/pdf")
                 except Exception as e:
@@ -193,4 +173,47 @@ elif menu == "📊 Statistik":
 elif menu == "📋 Riwayat":
     st.title("Daftar Kunjungan")
     if not df_tamu.empty:
-        st.dataframe(df_tamu.sort_values(by='timestamp
+        st.dataframe(df_tamu.sort_values(by='timestamp', ascending=False), use_container_width=True)
+    else:
+        st.info("Belum ada riwayat kunjungan.")
+
+elif menu == "📂 Laporan":
+    st.title("📂 Rekapitulasi Laporan")
+    if df_tamu.empty:
+        st.warning("Data laporan tidak ditemukan.")
+    else:
+        # pastikan kolom tanggal bisa diproses sebagai datetime
+        df_tamu['tanggal_dt'] = pd.to_datetime(df_tamu['tanggal'], errors='coerce')
+
+        tab_h, tab_b, tab_t = st.tabs(["📅 Harian", "📅 Bulanan", "📅 Tahunan"])
+
+        # --- Laporan Harian ---
+        with tab_h:
+            sel_date = st.date_input("Pilih Tanggal", value=datetime.date.today())
+            df_h = df_tamu[df_tamu['tanggal_dt'].dt.date == sel_date]
+            st.dataframe(df_h, use_container_width=True)
+            if not df_h.empty:
+                pdf_h = create_pdf(df_h, is_report=True, title=f"LAPORAN HARIAN - {sel_date}")
+                st.download_button("📥 Export PDF Harian", pdf_h, f"Laporan_Harian_{sel_date}.pdf", "application/pdf")
+
+        # --- Laporan Bulanan ---
+        with tab_b:
+            c1, c2 = st.columns(2)
+            with c1:
+                sel_m = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month-1)
+            with c2:
+                sel_y = st.selectbox("Tahun", range(2024, 2031), index=datetime.date.today().year-2024)
+            df_b = df_tamu[(df_tamu['tanggal_dt'].dt.month == sel_m) & (df_tamu['tanggal_dt'].dt.year == sel_y)]
+            st.dataframe(df_b, use_container_width=True)
+            if not df_b.empty:
+                pdf_b = create_pdf(df_b, is_report=True, title=f"LAPORAN BULANAN - {sel_m}/{sel_y}")
+                st.download_button("📥 Export PDF Bulanan", pdf_b, f"Laporan_Bulanan_{sel_m}_{sel_y}.pdf", "application/pdf")
+
+        # --- Laporan Tahunan ---
+        with tab_t:
+            sel_yt = st.selectbox("Tahun Laporan", range(2024, 2031), index=datetime.date.today().year-2024)
+            df_t = df_tamu[df_tamu['tanggal_dt'].dt.year == sel_yt]
+            st.dataframe(df_t, use_container_width=True)
+            if not df_t.empty:
+                pdf_t = create_pdf(df_t, is_report=True, title=f"LAPORAN TAHUNAN - {sel_yt}")
+                st.download_button("📥 Export PDF Tahunan", pdf_t, f"Laporan_Tahunan_{sel_yt}.pdf", "application/pdf")
