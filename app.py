@@ -2,12 +2,13 @@ import streamlit as st
 import pandas as pd
 from datetime import datetime
 from fpdf import FPDF
+from streamlit_drawable_canvas import st_canvas
 
 DATA_FILE = "data.xlsx"
 
 # Load data
 try:
-    df = pd.read_excel(DATA_FILE)
+    df = pd.read_excel(DATA_FILE, engine="openpyxl")
 except FileNotFoundError:
     df = pd.DataFrame(columns=[
         "tanggal", "tanggal_spt", "nama_lengkap", "nip", "jabatan", "opd",
@@ -32,6 +33,24 @@ if menu == "Halaman Utama":
     maksud = st.text_area("Maksud Kunjungan")
     kesan = st.text_area("Kesan dan Pesan")
 
+    # 🔹 Tambahan fitur Kamera
+    st.subheader("📷 Ambil Foto")
+    foto = st.camera_input("Ambil foto tamu")
+
+    # 🔹 Tambahan fitur Tanda Tangan
+    st.subheader("✍️ Tanda Tangan Digital")
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 255, 255, 0)",
+        stroke_width=2,
+        stroke_color="#000000",
+        background_color="#FFFFFF",
+        update_streamlit=True,
+        height=200,
+        width=400,
+        drawing_mode="freedraw",
+        key="tanda_tangan",
+    )
+
     if st.button("Simpan"):
         new_data = pd.DataFrame({
             "tanggal":[tanggal],
@@ -43,8 +62,8 @@ if menu == "Halaman Utama":
             "nomor_hp":[nomor_hp],
             "bidang_tujuan":[bidang],
             "maksud_kunjungan":[maksud],
-            "foto":[""],  # placeholder
-            "tanda_tangan":[""],  # placeholder
+            "foto":[str(foto) if foto else ""],
+            "tanda_tangan":[str(canvas_result.image_data) if canvas_result.image_data is not None else ""],
             "kesan_pesan":[kesan]
         })
         df = pd.concat([df, new_data], ignore_index=True)
