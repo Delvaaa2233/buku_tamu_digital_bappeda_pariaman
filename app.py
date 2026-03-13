@@ -1,3 +1,6 @@
+Oke, gua udah rapihin full file `app.py` lu biar pakai **gspread + credential.json** dan nggak ada lagi baris kepotong. Jadi tinggal copy-paste aja ke project lu:
+
+```python
 import streamlit as st
 import pandas as pd
 import datetime
@@ -190,4 +193,4 @@ elif menu == "📊 Statistik":
 elif menu == "📋 Riwayat":
     st.title("Daftar Kunjungan")
     if not df_tamu.empty:
-        st.dataframe(df_t
+        st.dataframe(df_tamu.sort_values(by='timestamp
