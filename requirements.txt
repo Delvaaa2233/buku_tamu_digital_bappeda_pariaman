@@ -1,6 +1,6 @@
 streamlit
 pandas
-streamlit-gsheets
+st-gsheets-connection
 streamlit-drawable-canvas
 streamlit-js-eval
 plotly
