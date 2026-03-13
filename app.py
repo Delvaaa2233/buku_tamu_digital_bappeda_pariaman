@@ -117,5 +117,35 @@ elif menu == "Daftar Buku Tamu":
                 pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
             pdf.output("daftar_buku_tamu.pdf")
             st.success("PDF berhasil dibuat!")
+
+        # ================================
+        # 🔹 Tambahan Menu Laporan
+        # ================================
+        st.header("📊 Laporan")
+
+        # Laporan Harian
+        st.subheader("📅 Laporan Harian")
+        tanggal_laporan = st.date_input("Pilih tanggal laporan")
+        if st.button("Generate Laporan Harian"):
+            laporan_harian = df[df["tanggal"] == tanggal_laporan]
+            st.write(laporan_harian)
+            st.write(f"Total tamu pada {tanggal_laporan}: {len(laporan_harian)}")
+
+        # Laporan Bulanan
+        st.subheader("📆 Laporan Bulanan")
+        bulan_laporan = st.selectbox("Pilih bulan laporan", range(1,13))
+        tahun_bulan = st.number_input("Masukkan tahun laporan", min_value=2000, max_value=2100, value=datetime.today().year)
+        if st.button("Generate Laporan Bulanan"):
+            laporan_bulanan = df[(df["tanggal"].dt.month == bulan_laporan) & (df["tanggal"].dt.year == tahun_bulan)]
+            st.write(laporan_bulanan)
+            st.write(f"Total tamu bulan {bulan_laporan}-{tahun_bulan}: {len(laporan_bulanan)}")
+
+        # Laporan Tahunan
+        st.subheader("📆 Laporan Tahunan")
+        tahun_laporan = st.number_input("Masukkan tahun laporan tahunan", min_value=2000, max_value=2100, value=datetime.today().year)
+        if st.button("Generate Laporan Tahunan"):
+            laporan_tahunan = df[df["tanggal"].dt.year == tahun_laporan]
+            st.write(laporan_tahunan)
+            st.write(f"Total tamu tahun {tahun_laporan}: {len(laporan_tahunan)}")
     else:
         st.info("Belum ada data tamu.")
