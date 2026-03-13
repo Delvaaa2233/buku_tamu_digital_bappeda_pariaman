@@ -5,3 +5,5 @@ streamlit-drawable-canvas
 streamlit-js-eval
 plotly
 fpdf
+gspread
+oauth2client
