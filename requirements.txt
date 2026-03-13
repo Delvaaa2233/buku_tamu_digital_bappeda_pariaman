@@ -1,8 +1,7 @@
 streamlit
 pandas
-gspread
-google-auth
-plotly
+streamlit-gsheets
 streamlit-drawable-canvas
+streamlit-js-eval
+plotly
 fpdf
-pillow
