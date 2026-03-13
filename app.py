@@ -3,9 +3,7 @@ import pandas as pd
 import datetime
 from streamlit_gsheets import GSheetsConnection
 from streamlit_drawable_canvas import st_canvas
-from streamlit_js_eval import get_geolocation
 import plotly.express as px
-import math
 from fpdf import FPDF
 import io
 
@@ -16,12 +14,16 @@ st.set_page_config(
     layout="wide"
 )
 
+# --- KONFIGURASI GOOGLE SHEETS ---
+SHEET_URL = "https://docs.google.com/spreadsheets/d/1c3DA7X56NbbeZyOFnfBFG8ZdxX-JZd9Ml372xvAA80o/edit#gid=0"
+
 # --- KONEKSI DATABASE ---
 conn = st.connection("gsheets", type=GSheetsConnection)
 
 def load_data(sheet_name):
     try:
-        return conn.read(worksheet=sheet_name, ttl=0)
+        # Mengambil data dengan menyertakan URL agar tidak error "Spreadsheet must be specified"
+        return conn.read(spreadsheet=SHEET_URL, worksheet=sheet_name, ttl=0)
     except Exception as e:
         st.error(f"Gagal memuat data {sheet_name}: {e}")
         return pd.DataFrame()
@@ -30,7 +32,7 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf = FPDF()
     pdf.add_page()
     
-    # Header
+    # Header Instansi
     pdf.set_font("Arial", 'B', 16)
     pdf.cell(200, 10, txt="BAPPEDA KOTA PARIAMAN", ln=True, align='C')
     pdf.set_font("Arial", size=12)
@@ -38,18 +40,16 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
     pdf.line(10, 30, 200, 30)
     pdf.ln(10)
     
-    pdf.set_font("Arial", size=10)
+    pdf.set_font("Arial", size=11)
     
     if not is_report:
-        # PDF untuk Tanda Terima Perorangan
+        # PDF untuk Tanda Terima Perorangan (Berdasarkan image_86291d.png)
         fields = {
             "ID Registrasi": data.get('id', '-'),
-            "Waktu Input": data.get('timestamp', '-'),
-            "Nama Lengkap": data.get('nama', '-'),
-            "NIP": data.get('nip', '-'),
-            "Jabatan": data.get('jabatan', '-'),
+            "Waktu": data.get('timestamp', '-'),
+            "Nama": data.get('nama', '-'),
             "Instansi/OPD": data.get('opd', '-'),
-            "Tujuan Bidang": data.get('bidang_tujuan', '-'),
+            "Tujuan": data.get('bidang_tujuan', '-'),
             "Maksud": data.get('maksud_kunjungan', '-')
         }
         for label, val in fields.items():
@@ -57,52 +57,43 @@ def create_pdf(data, is_report=False, title="TANDA TERIMA KUNJUNGAN"):
             pdf.cell(140, 10, txt=f"{val}", border=0, ln=True)
     else:
         # PDF untuk Laporan Tabel
-        pdf.set_font("Arial", 'B', 10)
-        # Header Tabel
-        col_width = [30, 50, 40, 70]
-        headers = ["Tanggal", "Nama", "OPD", "Maksud"]
+        pdf.set_font("Arial", 'B', 9)
+        col_widths = [25, 45, 40, 80]
+        headers = ["Tanggal", "Nama", "Instansi", "Maksud"]
         for i, h in enumerate(headers):
-            pdf.cell(col_width[i], 10, h, border=1, align='C')
+            pdf.cell(col_widths[i], 10, h, border=1, align='C')
         pdf.ln()
         
-        pdf.set_font("Arial", size=9)
+        pdf.set_font("Arial", size=8)
         for _, row in data.iterrows():
-            pdf.cell(col_width[0], 10, str(row['tanggal']), border=1)
-            pdf.cell(col_width[1], 10, str(row['nama'])[:25], border=1)
-            pdf.cell(col_width[2], 10, str(row['opd'])[:20], border=1)
-            pdf.cell(col_width[3], 10, str(row['maksud_kunjungan'])[:40], border=1)
+            pdf.cell(col_widths[0], 10, str(row['tanggal']), border=1)
+            pdf.cell(col_widths[1], 10, str(row['nama'])[:25], border=1)
+            pdf.cell(col_widths[2], 10, str(row['opd'])[:20], border=1)
+            pdf.cell(col_widths[3], 10, str(row['maksud_kunjungan'])[:45], border=1)
             pdf.ln()
 
     pdf.ln(15)
     pdf.set_font("Arial", 'I', 8)
-    pdf.cell(200, 10, txt=f"Dicetak otomatis pada: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
+    pdf.cell(200, 10, txt=f"Dicetak pada: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}", ln=True, align='C')
     return pdf.output(dest='S').encode('latin-1')
 
-# Load data
+# Load data awal
 df_tamu = load_data("data_tamu")
 
-# Styling
-st.markdown("""
-    <style>
-    .stApp { background-color: #f8fafc; }
-    .header-box {
-        background: linear-gradient(135deg, #004a99 0%, #0072ff 100%);
-        padding: 30px; border-radius: 15px; color: white;
-        text-align: center; margin-bottom: 25px;
-    }
-    </style>
-    """, unsafe_allow_html=True)
-
-# Sidebar
+# Sidebar Menu
 with st.sidebar:
     st.image("https://upload.wikimedia.org/wikipedia/commons/a/a8/Logo_Kota_Pariaman.png", width=70)
     st.title("Sistem BAPPEDA")
-    menu = st.radio("Menu:", ["🏠 Form Buku Tamu", "📊 Visualisasi Data", "📋 Riwayat Kunjungan", "📂 Laporan"])
+    menu = st.radio("Navigasi:", ["🏠 Form Buku Tamu", "📊 Statistik", "📋 Riwayat", "📂 Laporan"])
 
-# Menu Utama
+# --- LOGIKA MENU ---
 if menu == "🏠 Form Buku Tamu":
-    st.markdown('<div class="header-box"><h1>BUKU TAMU DIGITAL</h1><p>BAPPEDA KOTA PARIAMAN</p></div>', unsafe_allow_html=True)
-    st.info("💡 Fitur lokasi dinonaktifkan sementara untuk keperluan input data.")
+    st.markdown("""
+        <div style='background: linear-gradient(135deg, #004a99 0%, #0072ff 100%); padding: 25px; border-radius: 15px; color: white; text-align: center; margin-bottom: 20px;'>
+            <h1 style='margin:0;'>BUKU TAMU DIGITAL</h1>
+            <p style='margin:0;'>BAPPEDA KOTA PARIAMAN</p>
+        </div>
+    """, unsafe_allow_html=True)
 
     with st.form("guest_form", clear_on_submit=True):
         col1, col2 = st.columns(2)
@@ -118,7 +109,7 @@ if menu == "🏠 Form Buku Tamu":
             maksud = st.text_area("Maksud Kunjungan*")
             
         kesan = st.text_area("Kesan & Pesan")
-        foto = st.camera_input("Foto Verifikasi")
+        foto = st.camera_input("Ambil Foto Verifikasi")
         
         st.write("✍️ **Tanda Tangan**")
         canvas_result = st_canvas(
@@ -126,83 +117,93 @@ if menu == "🏠 Form Buku Tamu":
             height=150, width=400, drawing_mode="freedraw", key="canvas_sign"
         )
 
-        submitted = st.form_submit_button("SIMPAN DATA")
+        submitted = st.form_submit_button("SIMPAN KUNJUNGAN")
         
         if submitted:
             if not nama or not no_hp or not opd or not jabatan or not maksud:
-                st.error("Mohon lengkapi data bertanda (*)")
+                st.error("Mohon lengkapi kolom yang wajib diisi (*)")
             else:
                 entry_id = datetime.datetime.now().strftime("%Y%m%d%H%M%S")
+                # Sesuaikan urutan kolom dengan image_862525.png
                 entry_data = {
                     "id": entry_id,
                     "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                     "tanggal": str(datetime.date.today()),
                     "tanggal_spt": str(tgl_spt) if tgl_spt else "",
-                    "nama": nama, "nip": nip, "jabatan": jabatan, "opd": opd,
-                    "nomor_hp": no_hp, "bidang_tujuan": bidang, "maksud_kunjungan": maksud,
-                    "kesan_pesan": kesan, "foto_url": "Terlampir", "tanda_tangan_url": "Terlampir",
-                    "latitude": "Manual Input", "longitude": "Manual Input"
+                    "nama": nama,
+                    "nip": nip,
+                    "jabatan": jabatan,
+                    "opd": opd,
+                    "nomor_hp": no_hp,
+                    "bidang_tujuan": bidang,
+                    "maksud_kunjungan": maksud,
+                    "kesan_pesan": kesan,
+                    "foto_url": "Terlampir",
+                    "tanda_tangan_url": "Terlampir",
+                    "latitude": "Bypass",
+                    "longitude": "Bypass"
                 }
                 
                 try:
                     df_new = pd.DataFrame([entry_data])
+                    # Update ke Google Sheets
                     updated_df = pd.concat([df_tamu, df_new], ignore_index=True)
-                    conn.update(worksheet="data_tamu", data=updated_df)
-                    st.success("✅ Data Tersimpan!")
+                    conn.update(spreadsheet=SHEET_URL, worksheet="data_tamu", data=updated_df)
+                    
+                    st.success("✅ Data berhasil disimpan!")
                     st.balloons()
                     
-                    pdf_data = create_pdf(entry_data)
-                    st.download_button("📥 Download Tanda Terima (PDF)", pdf_data, f"Tamu_{entry_id}.pdf", "application/pdf")
+                    # PDF Download
+                    pdf_bytes = create_pdf(entry_data)
+                    st.download_button("📥 Unduh Tanda Terima (PDF)", pdf_bytes, f"Tanda_Terima_{entry_id}.pdf", "application/pdf")
                 except Exception as e:
-                    st.error(f"Error GSheets: {e}")
+                    st.error(f"Gagal menyimpan: {e}")
 
-elif menu == "📊 Visualisasi Data":
+elif menu == "📊 Statistik":
     st.title("Statistik Pengunjung")
     if not df_tamu.empty:
-        st.plotly_chart(px.pie(df_tamu, names='bidang_tujuan', hole=0.3, title="Persentase Kunjungan per Bidang"))
-    else: st.info("Data masih kosong")
+        fig = px.pie(df_tamu, names='bidang_tujuan', hole=0.4, title="Tujuan Kunjungan")
+        st.plotly_chart(fig, use_container_width=True)
+    else:
+        st.warning("Belum ada data.")
 
-elif menu == "📋 Riwayat Kunjungan":
-    st.title("Riwayat Kunjungan Terbaru")
+elif menu == "📋 Riwayat":
+    st.title("Daftar Kunjungan")
     if not df_tamu.empty:
         st.dataframe(df_tamu.sort_values(by='timestamp', ascending=False), use_container_width=True)
-    else: st.info("Belum ada riwayat")
+    else:
+        st.info("Riwayat kosong.")
 
 elif menu == "📂 Laporan":
-    st.title("📂 Laporan Kunjungan")
-    
+    st.title("📂 Rekapitulasi Laporan")
     if df_tamu.empty:
-        st.info("Data kosong, tidak ada laporan yang bisa dihasilkan.")
+        st.warning("Data tidak tersedia.")
     else:
-        # Konversi kolom tanggal ke datetime untuk filter
         df_tamu['tanggal_dt'] = pd.to_datetime(df_tamu['tanggal'])
+        tab_h, tab_b, tab_t = st.tabs(["📅 Harian", "📅 Bulanan", "📅 Tahunan"])
         
-        tab1, tab2, tab3 = st.tabs(["Harian", "Bulanan", "Tahunan"])
-        
-        with tab1:
-            date_filter = st.date_input("Pilih Tanggal Laporan", value=datetime.date.today())
-            filtered_df = df_tamu[df_tamu['tanggal_dt'].dt.date == date_filter]
-            st.write(f"Data Tanggal: {date_filter}")
-            st.dataframe(filtered_df, use_container_width=True)
-            if not filtered_df.empty:
-                pdf_rep = create_pdf(filtered_df, is_report=True, title=f"LAPORAN HARIAN - {date_filter}")
-                st.download_button("📥 Export Laporan Harian (PDF)", pdf_rep, f"Laporan_Harian_{date_filter}.pdf", "application/pdf")
+        with tab_h:
+            sel_date = st.date_input("Pilih Tanggal", value=datetime.date.today())
+            df_h = df_tamu[df_tamu['tanggal_dt'].dt.date == sel_date]
+            st.dataframe(df_h, use_container_width=True)
+            if not df_h.empty:
+                pdf_h = create_pdf(df_h, is_report=True, title=f"LAPORAN HARIAN - {sel_date}")
+                st.download_button("📥 Export PDF Harian", pdf_h, f"Laporan_Harian_{sel_date}.pdf", "application/pdf")
 
-        with tab2:
-            col_m, col_y = st.columns(2)
-            with col_m: month_filter = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month - 1)
-            with col_y: year_filter = st.selectbox("Tahun ", range(2024, 2030), index=1)
-            
-            filtered_df_m = df_tamu[(df_tamu['tanggal_dt'].dt.month == month_filter) & (df_tamu['tanggal_dt'].dt.year == year_filter)]
-            st.dataframe(filtered_df_m, use_container_width=True)
-            if not filtered_df_m.empty:
-                pdf_rep_m = create_pdf(filtered_df_m, is_report=True, title=f"LAPORAN BULANAN - {month_filter}/{year_filter}")
-                st.download_button("📥 Export Laporan Bulanan (PDF)", pdf_rep_m, f"Laporan_Bulanan_{month_filter}_{year_filter}.pdf", "application/pdf")
+        with tab_b:
+            c1, c2 = st.columns(2)
+            with c1: sel_m = st.selectbox("Bulan", range(1, 13), index=datetime.date.today().month-1)
+            with c2: sel_y = st.selectbox("Tahun", range(2024, 2031), index=1)
+            df_b = df_tamu[(df_tamu['tanggal_dt'].dt.month == sel_m) & (df_tamu['tanggal_dt'].dt.year == sel_y)]
+            st.dataframe(df_b, use_container_width=True)
+            if not df_b.empty:
+                pdf_b = create_pdf(df_b, is_report=True, title=f"LAPORAN BULANAN - {sel_m}/{sel_y}")
+                st.download_button("📥 Export PDF Bulanan", pdf_b, f"Laporan_Bulanan_{sel_m}_{sel_y}.pdf", "application/pdf")
 
-        with tab3:
-            year_only = st.selectbox("Pilih Tahun Laporan", range(2024, 2030), index=1)
-            filtered_df_y = df_tamu[df_tamu['tanggal_dt'].dt.year == year_only]
-            st.dataframe(filtered_df_y, use_container_width=True)
-            if not filtered_df_y.empty:
-                pdf_rep_y = create_pdf(filtered_df_y, is_report=True, title=f"LAPORAN TAHUNAN - {year_only}")
-                st.download_button("📥 Export Laporan Tahunan (PDF)", pdf_rep_y, f"Laporan_Tahunan_{year_only}.pdf", "application/pdf")
+        with tab_t:
+            sel_yt = st.selectbox("Pilih Tahun", range(2024, 2031), index=1)
+            df_t = df_tamu[df_tamu['tanggal_dt'].dt.year == sel_yt]
+            st.dataframe(df_t, use_container_width=True)
+            if not df_t.empty:
+                pdf_t = create_pdf(df_t, is_report=True, title=f"LAPORAN TAHUNAN - {sel_yt}")
+                st.download_button("📥 Export PDF Tahunan", pdf_t, f"Laporan_Tahunan_{sel_yt}.pdf", "application/pdf")
