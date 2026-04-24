@@ -172,13 +172,17 @@ elif menu == "Daftar Buku Tamu":
                     except Exception as e:
                         st.warning(f"Foto tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
 
-                # Tanda tangan
-               if row["tanda_tangan"] and os.path.exists(row["tanda_tangan"]):
-                  try:
-                      img = Image.open(row["tanda_tangan"]).convert("RGB")
-                      temp_path = f"{FOTO_DIR}/temp_ttd_{i}.png"
-                      img.save(temp_path, format="PNG")
-                      pdf.image(temp_path, x=60, w=40)
-                      pdf.ln(45)
-                 except Exception as e:
-                      st.warning(f"Tanda tangan tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
+            # Tanda tangan
+if row["tanda_tangan"] and os.path.exists(row["tanda_tangan"]):
+    try:
+        img = Image.open(row["tanda_tangan"]).convert("RGB")
+        temp_path = f"{FOTO_DIR}/temp_ttd_{i}.png"
+        img.save(temp_path, format="PNG")
+        pdf.image(temp_path, x=60, w=40)
+        pdf.ln(45)
+    except Exception as e:
+        st.warning(f"Tanda tangan tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
+
+
+
+                
