@@ -149,3 +149,31 @@ elif menu == "Daftar Buku Tamu":
             st.success("PDF berhasil dibuat!")
     else:
         st.info("Belum ada data tamu.")
+
+# Export PDF daftar tamu
+if st.button("Export PDF"):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
+
+    # Biar lebih rapi, tampilkan beberapa kolom penting
+    for i, row in df.iterrows():
+        pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
+        pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
+        pdf.cell(200, 10, txt=f"Maksud: {row['maksud_kunjungan']}", ln=True)
+        pdf.cell(200, 10, txt="-----------------------------", ln=True)
+
+    pdf.output("daftar_buku_tamu.pdf")
+
+    # Tambahin tombol download
+    with open("daftar_buku_tamu.pdf", "rb") as f:
+        st.download_button(
+            label="📥 Download PDF",
+            data=f,
+            file_name="daftar_buku_tamu.pdf",
+            mime="application/pdf"
+        )
+
+    st.success("PDF berhasil dibuat dan siap diunduh!")
+
+ 
