@@ -150,30 +150,64 @@ elif menu == "Daftar Buku Tamu":
     else:
         st.info("Belum ada data tamu.")
 
-# Export PDF daftar tamu
-if st.button("Export PDF"):
-    pdf = FPDF()
-    pdf.add_page()
-    pdf.set_font("Arial", size=12)
+# Daftar Buku Tamu
+elif menu == "Daftar Buku Tamu":
+    st.header("📑 Daftar Buku Tamu")
+    if not df.empty:
+        st.dataframe(df)
 
-    # Biar lebih rapi, tampilkan beberapa kolom penting
-    for i, row in df.iterrows():
-        pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
-        pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
-        pdf.cell(200, 10, txt=f"Maksud: {row['maksud_kunjungan']}", ln=True)
-        pdf.cell(200, 10, txt="-----------------------------", ln=True)
+        # 🔹 Tampilkan foto & tanda tangan history
+        st.subheader("📷 History Foto & ✍️ Tanda Tangan")
+        for i, row in df.iterrows():
+            st.write(f"Nama: {row['nama_lengkap']} | Tanggal: {row['tanggal']}")
+            if row["foto"]:
+                st.image(row["foto"], caption="Foto Tamu", width=200)
+            if row["tanda_tangan"]:
+                st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
+            st.write("---")
 
-    pdf.output("daftar_buku_tamu.pdf")
+        # 🔹 Fitur Delete Data Tamu
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Index")
+        index_to_delete = st.number_input("Masukkan nomor index tamu", min_value=0, max_value=len(df)-1, step=1)
+        if st.button("Delete by Index"):
+            df = df.drop(index_to_delete).reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan index {index_to_delete} berhasil dihapus!")
 
-    # Tambahin tombol download
-    with open("daftar_buku_tamu.pdf", "rb") as f:
-        st.download_button(
-            label="📥 Download PDF",
-            data=f,
-            file_name="daftar_buku_tamu.pdf",
-            mime="application/pdf"
-        )
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Nama")
+        nama_to_delete = st.selectbox("Pilih nama tamu", df["nama_lengkap"].unique())
+        if st.button("Delete by Name"):
+            df = df[df["nama_lengkap"] != nama_to_delete].reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-    st.success("PDF berhasil dibuat dan siap diunduh!")
+        # 🔹 Export PDF daftar tamu
+        if st.button("Export PDF"):
+            pdf = FPDF()
+            pdf.add_page()
+            pdf.set_font("Arial", size=12)
+
+            # Format isi PDF lebih rapi
+            for i, row in df.iterrows():
+                pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
+                pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
+                pdf.cell(200, 10, txt=f"Maksud: {row['maksud_kunjungan']}", ln=True)
+                pdf.cell(200, 10, txt="-----------------------------", ln=True)
+
+            pdf.output("daftar_buku_tamu.pdf")
+
+            # Tambahin tombol download
+            with open("daftar_buku_tamu.pdf", "rb") as f:
+                st.download_button(
+                    label="📥 Download PDF",
+                    data=f,
+                    file_name="daftar_buku_tamu.pdf",
+                    mime="application/pdf"
+                )
+
+            st.success("PDF berhasil dibuat dan siap diunduh!")
+    else:
+        st.info("Belum ada data tamu.")
+
 
  
