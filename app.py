@@ -161,28 +161,24 @@ elif menu == "Daftar Buku Tamu":
                 pdf.cell(200, 10, txt=f"Maksud Kunjungan: {row['maksud_kunjungan']}", ln=True)
                 pdf.cell(200, 10, txt=f"Kesan/Pesan: {row['kesan_pesan']}", ln=True)
 
+                # Foto
                 if row["foto"] and os.path.exists(row["foto"]):
-                    pdf.image(row["foto"], x=10, w=40)
-                    pdf.ln(45)
+                    try:
+                        img = Image.open(row["foto"]).convert("RGB")
+                        temp_path = f"{FOTO_DIR}/temp_foto_{i}.png"
+                        img.save(temp_path, format="PNG")
+                        pdf.image(temp_path, x=10, w=40)
+                        pdf.ln(45)
+                    except Exception as e:
+                        st.warning(f"Foto tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
 
-                if row["tanda_tangan"] and os.path.exists(row["tanda_tangan"]):
-                    pdf.image(row["tanda_tangan"], x=60, w=40)
-                    pdf.ln(45)
-
-                pdf.cell(200, 10, txt="----------------------------------------", ln=True)
-
-            pdf_file = "daftar_buku_tamu.pdf"
-            pdf.output(pdf_file)
-
-            with open(pdf_file, "rb") as f:
-                st.download_button(
-                    label="📥 Download PDF",
-                    data=f,
-                    file_name=pdf_file,
-                    mime="application/pdf",
-                    key="download_pdf_button"
-                )
-
-            st.success("PDF berhasil dibuat dan siap diunduh!")
-    else:
-        st.info("Belum ada data tamu.")
+                # Tanda tangan
+               if row["tanda_tangan"] and os.path.exists(row["tanda_tangan"]):
+                  try:
+                      img = Image.open(row["tanda_tangan"]).convert("RGB")
+                      temp_path = f"{FOTO_DIR}/temp_ttd_{i}.png"
+                      img.save(temp_path, format="PNG")
+                      pdf.image(temp_path, x=60, w=40)
+                      pdf.ln(45)
+                 except Exception as e:
+                      st.warning(f"Tanda tangan tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
