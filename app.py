@@ -16,6 +16,7 @@ if not os.path.exists(FOTO_DIR):
 # Load data
 try:
     df = pd.read_excel(DATA_FILE, engine="openpyxl")
+    # 🔹 Pastikan kolom tanggal jadi datetime
     if not df.empty and df["tanggal"].dtype == "object":
         df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
 except FileNotFoundError:
@@ -24,7 +25,7 @@ except FileNotFoundError:
         "nomor_hp", "bidang_tujuan", "maksud_kunjungan", "foto", "tanda_tangan", "kesan_pesan"
     ])
 
-# Sidebar menu
+# Sidebar menu (hapus menu Laporan)
 menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu"])
 
 # Halaman Utama
@@ -38,14 +39,11 @@ if menu == "Halaman Utama":
     jabatan = st.text_input("Jabatan")
     opd = st.text_input("OPD")
     nomor_hp = st.text_input("Nomor HP")
-    bidang = st.selectbox("Bidang Tujuan", [
-        "Sekretariat", "Bidang Litbang", "Bidang Ekonomi",
-        "Bidang Sarana dan Prasarana Wilayah", "Bidang Pemerintahan dan Sosial Budaya"
-    ])
+    bidang = st.selectbox("Bidang Tujuan", ["Sekretariat", "Bidang Litbang", "Bidang Ekonomi", "Bidang Sarana"])
     maksud = st.text_area("Maksud Kunjungan")
     kesan = st.text_area("Kesan dan Pesan")
 
-    # Fitur Kamera
+    # 🔹 Fitur Kamera
     st.subheader("📷 Ambil Foto")
     foto = st.camera_input("Ambil foto tamu")
 
@@ -56,7 +54,7 @@ if menu == "Halaman Utama":
             f.write(foto.getbuffer())
         foto_path = foto_filename
 
-    # Fitur Tanda Tangan
+    # 🔹 Fitur Tanda Tangan
     st.subheader("✍️ Tanda Tangan Digital")
     canvas_result = st_canvas(
         fill_color="rgba(255, 255, 255, 0)",
@@ -76,7 +74,7 @@ if menu == "Halaman Utama":
         Image.fromarray(canvas_result.image_data.astype("uint8")).save(tanda_filename)
         tanda_tangan_path = tanda_filename
 
-    if st.button("Simpan", key="simpan_button"):
+    if st.button("Simpan"):
         new_data = pd.DataFrame({
             "tanggal":[tanggal],
             "tanggal_spt":[tanggal_spt],
@@ -100,6 +98,7 @@ elif menu == "Ringkasan Statistik":
     st.header("📊 Ringkasan Statistik")
     if not df.empty:
         today = datetime.today().date()
+        # Pastikan kolom tanggal sudah datetime
         df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
 
         st.write(f"Tamu hari ini: {len(df[df['tanggal'].dt.date == today])}")
@@ -114,7 +113,7 @@ elif menu == "Daftar Buku Tamu":
     if not df.empty:
         st.dataframe(df)
 
-        # History Foto & Tanda Tangan
+        # 🔹 Tampilkan foto & tanda tangan history
         st.subheader("📷 History Foto & ✍️ Tanda Tangan")
         for i, row in df.iterrows():
             st.write(f"Nama: {row['nama_lengkap']} | Tanggal: {row['tanggal']}")
@@ -124,65 +123,29 @@ elif menu == "Daftar Buku Tamu":
                 st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
             st.write("---")
 
-        # Delete by Index
+        # 🔹 Fitur Delete Data Tamu
         st.subheader("🗑️ Hapus Data Tamu berdasarkan Index")
-        index_to_delete = st.number_input("Masukkan nomor index tamu", min_value=0, max_value=len(df)-1, step=1, key="delete_index_input")
-        if st.button("Delete by Index", key="delete_index_button"):
+        index_to_delete = st.number_input("Masukkan nomor index tamu", min_value=0, max_value=len(df)-1, step=1)
+        if st.button("Delete by Index"):
             df = df.drop(index_to_delete).reset_index(drop=True)
             df.to_excel(DATA_FILE, index=False)
             st.success(f"Data tamu dengan index {index_to_delete} berhasil dihapus!")
 
-        # Delete by Name
         st.subheader("🗑️ Hapus Data Tamu berdasarkan Nama")
-        nama_to_delete = st.selectbox("Pilih nama tamu", df["nama_lengkap"].unique(), key="delete_name_select")
-        if st.button("Delete by Name", key="delete_name_button"):
+        nama_to_delete = st.selectbox("Pilih nama tamu", df["nama_lengkap"].unique())
+        if st.button("Delete by Name"):
             df = df[df["nama_lengkap"] != nama_to_delete].reset_index(drop=True)
             df.to_excel(DATA_FILE, index=False)
             st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-        # Export PDF
-        if st.button("Export PDF", key="export_pdf_button"):
+        # 🔹 Export PDF daftar tamu
+        if st.button("Export PDF"):
             pdf = FPDF()
             pdf.add_page()
             pdf.set_font("Arial", size=12)
-
-            pdf.cell(200, 10, txt="Daftar Buku Tamu BAPPEDA Kota Pariaman", ln=True, align="C")
-            pdf.ln(10)
-
             for i, row in df.iterrows():
-                pdf.cell(200, 10, txt=f"Tanggal: {row['tanggal']}", ln=True)
-                pdf.cell(200, 10, txt=f"Tanggal SPT: {row['tanggal_spt']}", ln=True)
-                pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
-                pdf.cell(200, 10, txt=f"NIP: {row['nip']}", ln=True)
-                pdf.cell(200, 10, txt=f"Jabatan: {row['jabatan']}", ln=True)
-                pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
-                pdf.cell(200, 10, txt=f"Nomor HP: {row['nomor_hp']}", ln=True)
-                pdf.cell(200, 10, txt=f"Bidang Tujuan: {row['bidang_tujuan']}", ln=True)
-                pdf.cell(200, 10, txt=f"Maksud Kunjungan: {row['maksud_kunjungan']}", ln=True)
-                pdf.cell(200, 10, txt=f"Kesan/Pesan: {row['kesan_pesan']}", ln=True)
-
-                # Foto
-                if row["foto"] and os.path.exists(row["foto"]):
-                    try:
-                        img = Image.open(row["foto"]).convert("RGB")
-                        temp_path = f"{FOTO_DIR}/temp_foto_{i}.png"
-                        img.save(temp_path, format="PNG")
-                        pdf.image(temp_path, x=10, w=40)
-                        pdf.ln(45)
-                    except Exception as e:
-                        st.warning(f"Foto tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
-
-            # Tanda tangan
-if row["tanda_tangan"] and os.path.exists(row["tanda_tangan"]):
-    try:
-        img = Image.open(row["tanda_tangan"]).convert("RGB")
-        temp_path = f"{FOTO_DIR}/temp_ttd_{i}.png"
-        img.save(temp_path, format="PNG")
-        pdf.image(temp_path, x=60, w=40)
-        pdf.ln(45)
-    except Exception as e:
-        st.warning(f"Tanda tangan tamu {row['nama_lengkap']} tidak bisa dimasukkan ke PDF: {e}")
-
-
-
-                
+                pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
+            pdf.output("daftar_buku_tamu.pdf")
+            st.success("PDF berhasil dibuat!")
+    else:
+        st.info("Belum ada data tamu.")
