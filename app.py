@@ -181,33 +181,36 @@ elif menu == "Daftar Buku Tamu":
             df.to_excel(DATA_FILE, index=False)
             st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-        # 🔹 Export PDF daftar tamu
-        if st.button("Export PDF"):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
+       # 🔹 Export PDF daftar tamu
+if st.button("Export PDF"):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", size=12)
 
-            # Format isi PDF lebih rapi
-            for i, row in df.iterrows():
-                pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
-                pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
-                pdf.cell(200, 10, txt=f"Maksud: {row['maksud_kunjungan']}", ln=True)
-                pdf.cell(200, 10, txt="-----------------------------", ln=True)
+    # Header
+    pdf.cell(200, 10, txt="Daftar Buku Tamu BAPPEDA Kota Pariaman", ln=True, align="C")
+    pdf.ln(10)
 
-            pdf.output("daftar_buku_tamu.pdf")
+    # Isi data tamu
+    for i, row in df.iterrows():
+        pdf.cell(200, 10, txt=f"Tanggal: {row['tanggal']}", ln=True)
+        pdf.cell(200, 10, txt=f"Nama: {row['nama_lengkap']}", ln=True)
+        pdf.cell(200, 10, txt=f"OPD: {row['opd']}", ln=True)
+        pdf.cell(200, 10, txt=f"Maksud: {row['maksud_kunjungan']}", ln=True)
+        pdf.cell(200, 10, txt="----------------------------------------", ln=True)
 
-            # Tambahin tombol download
-            with open("daftar_buku_tamu.pdf", "rb") as f:
-                st.download_button(
-                    label="📥 Download PDF",
-                    data=f,
-                    file_name="daftar_buku_tamu.pdf",
-                    mime="application/pdf"
-                )
+    pdf_file = "daftar_buku_tamu.pdf"
+    pdf.output(pdf_file)
 
-            st.success("PDF berhasil dibuat dan siap diunduh!")
-    else:
-        st.info("Belum ada data tamu.")
+    # Tombol download
+    with open(pdf_file, "rb") as f:
+        st.download_button(
+            label="📥 Download PDF",
+            data=f,
+            file_name=pdf_file,
+            mime="application/pdf"
+        )
+
 
 
  
