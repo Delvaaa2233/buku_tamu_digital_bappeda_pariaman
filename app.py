@@ -138,14 +138,4 @@ elif menu == "Daftar Buku Tamu":
             df.to_excel(DATA_FILE, index=False)
             st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-        # 🔹 Export PDF daftar tamu
-        if st.button("Export PDF"):
-            pdf = FPDF()
-            pdf.add_page()
-            pdf.set_font("Arial", size=12)
-            for i, row in df.iterrows():
-                pdf.cell(200, 10, txt=str(row.to_dict()), ln=True)
-            pdf.output("daftar_buku_tamu.pdf")
-            st.success("PDF berhasil dibuat!")
-    else:
-        st.info("Belum ada data tamu.")
+        
