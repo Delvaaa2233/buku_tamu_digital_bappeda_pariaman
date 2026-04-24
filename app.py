@@ -177,4 +177,12 @@ elif menu == "Daftar Buku Tamu":
             with open(pdf_file, "rb") as f:
                 st.download_button(
                     label="📥 Download PDF",
-                    data
+                    data=f,
+                    file_name=pdf_file,
+                    mime="application/pdf",
+                    key="download_pdf_button"
+                )
+
+            st.success("PDF berhasil dibuat dan siap diunduh!")
+    else:
+        st.info("Belum ada data tamu.")
