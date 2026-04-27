@@ -59,7 +59,7 @@ if menu == "Halaman Utama":
         jabatan = st.text_input("Jabatan")
         opd = st.text_input("OPD")
         nomor_hp = st.text_input("Nomor HP")
-        bidang = st.selectbox("Bidang Tujuan", ["Sekretariat", "Bidang Litbang", "Bidang Ekonomi", "Bidang Sarana"])
+        bidang = st.selectbox("Bidang Tujuan", ["Sekretariat", "Bidang Litbang", "Bidang Ekonomi", "Bidang Sarana dan Prasarana Wilayah", "Bidang Pemeritahan dan Sosia Budaya"])
         maksud = st.text_area("Maksud Kunjungan")
         kesan = st.text_area("Kesan dan Pesan")
 
