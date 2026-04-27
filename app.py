@@ -106,9 +106,9 @@ if menu == "Halaman Utama":
 # --- Ringkasan Statistik ---
 elif menu == "Ringkasan Statistik":
     st.header("📊 Ringkasan Statistik")
-    data = sheet.get_all_records()
-    if data:
-        df = pd.DataFrame(data)
+    data = sheet.get_all_values()
+    if len(data) > 1:  # ada header + isi
+        df = pd.DataFrame(data[1:], columns=data[0])
         df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
         today = datetime.today().date()
         st.write(f"Tamu hari ini: {len(df[df['tanggal'].dt.date == today])}")
@@ -120,9 +120,9 @@ elif menu == "Ringkasan Statistik":
 # --- Daftar Buku Tamu ---
 elif menu == "Daftar Buku Tamu":
     st.header("📑 Daftar Buku Tamu")
-    data = sheet.get_all_records()
-    if data:
-        df = pd.DataFrame(data)
+    data = sheet.get_all_values()
+    if len(data) > 1:
+        df = pd.DataFrame(data[1:], columns=data[0])
         st.dataframe(df, use_container_width=True)
 
         st.subheader("📷 History Foto & ✍️ Tanda Tangan")
