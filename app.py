@@ -128,10 +128,25 @@ elif menu == "Daftar Buku Tamu":
         st.subheader("📷 History Foto & ✍️ Tanda Tangan")
         for i, row in df.iterrows():
             st.write(f"Nama: {row['nama_lengkap']} | Tanggal: {row['tanggal']}")
-            if row.get("foto"):
-                st.image(row["foto"], caption="Foto Tamu", width=200)
-            if row.get("tanda_tangan"):
-                st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
+
+            foto_path = row.get("foto")
+            if foto_path:
+                if foto_path.startswith("http"):  # kalau link Google Drive
+                    st.image(foto_path, caption="Foto Tamu", width=200)
+                elif os.path.exists(foto_path):  # kalau file lokal masih ada
+                    st.image(foto_path, caption="Foto Tamu", width=200)
+                else:
+                    st.warning("Foto tidak tersedia.")
+
+            ttd_path = row.get("tanda_tangan")
+            if ttd_path:
+                if ttd_path.startswith("http"):
+                    st.image(ttd_path, caption="Tanda Tangan", width=200)
+                elif os.path.exists(ttd_path):
+                    st.image(ttd_path, caption="Tanda Tangan", width=200)
+                else:
+                    st.warning("Tanda tangan tidak tersedia.")
+
             st.write("---")
 
         st.subheader("🗑️ Hapus Data Tamu")
