@@ -1,6 +1,8 @@
 streamlit
+gspread
+oauth2client
 pandas
-openpyxl
-matplotlib
-fpdf
+pillow
 streamlit-drawable-canvas
+fpdf
+openpyxl
