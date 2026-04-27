@@ -1,21 +1,23 @@
 import streamlit as st
 import gspread
-from oauth2client.service_account import ServiceAccountCredentials
+from google.oauth2.service_account import Credentials
 from datetime import datetime, date
 from streamlit_drawable_canvas import st_canvas
 from PIL import Image
 import os
+import pandas as pd
 
 # --- Konfigurasi Google Sheets ---
-scope = ["https://spreadsheets.google.com/feeds",
+scope = ["https://www.googleapis.com/auth/spreadsheets",
          "https://www.googleapis.com/auth/drive"]
 
 creds_dict = st.secrets["gcp_service_account"]
-creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
+creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
 client = gspread.authorize(creds)
 
-# Ganti dengan nama file atau ID spreadsheet
-sheet = client.open("Buku Tamu Digital").sheet1
+# Pakai Spreadsheet ID langsung
+SPREADSHEET_ID = "1lBGe8ZTLBICZz5dbDgPqwNiv4FO-CEFmcSnczYNUxz8"
+sheet = client.open_by_key(SPREADSHEET_ID).sheet1
 
 FOTO_DIR = "foto_tamu"
 if not os.path.exists(FOTO_DIR):
@@ -59,7 +61,10 @@ if menu == "Halaman Utama":
         jabatan = st.text_input("Jabatan")
         opd = st.text_input("OPD")
         nomor_hp = st.text_input("Nomor HP")
-        bidang = st.selectbox("Bidang Tujuan", ["Sekretariat", "Bidang Litbang", "Bidang Ekonomi", "Bidang Sarana dan Prasarana Wilayah", "Bidang Pemeritahan dan Sosia Budaya"])
+        bidang = st.selectbox("Bidang Tujuan", [
+            "Sekretariat", "Bidang Litbang", "Bidang Ekonomi",
+            "Bidang Sarana dan Prasarana Wilayah", "Bidang Pemeritahan dan Sosia Budaya"
+        ])
         maksud = st.text_area("Maksud Kunjungan")
         kesan = st.text_area("Kesan dan Pesan")
 
@@ -123,9 +128,9 @@ elif menu == "Daftar Buku Tamu":
         st.subheader("📷 History Foto & ✍️ Tanda Tangan")
         for i, row in df.iterrows():
             st.write(f"Nama: {row['nama_lengkap']} | Tanggal: {row['tanggal']}")
-            if row["foto"]:
+            if row.get("foto"):
                 st.image(row["foto"], caption="Foto Tamu", width=200)
-            if row["tanda_tangan"]:
+            if row.get("tanda_tangan"):
                 st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
             st.write("---")
 
