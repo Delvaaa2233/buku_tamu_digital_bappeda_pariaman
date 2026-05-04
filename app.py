@@ -10,7 +10,7 @@ import io
 
 # ================= CONFIG =================
 st.set_page_config(
-    page_title="Buku Tamu Digital BAPPEDA",
+    page_title="Selamat Datang di Buku Tamu Digital BAPPEDA Kota Pariaman",
     page_icon="📘",
     layout="wide"
 )
