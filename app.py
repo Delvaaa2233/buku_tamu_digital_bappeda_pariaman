@@ -192,61 +192,33 @@ elif menu == "Daftar Tamu":
 
         st.dataframe(df, use_container_width=True)
         
-# ================= DOKUMENTASI SUPER AMAN =================
-st.subheader("📷 Dokumentasi Tamu")
+# Bagian Dokumentasi dipindahkan ke dalam blok Menu Daftar Tamu agar df tersedia
+        st.divider()
+        st.subheader("📷 Dokumentasi Tamu")
 
-for _, row in df.iterrows():
+        for _, row in df.iterrows():
+            nama_tamu = row.iloc[2]
+            tgl_kunjung = row.iloc[0]
+            
+            st.markdown(f"**👤 {nama_tamu}** | 📅 {tgl_kunjung}")
+            c1, c2 = st.columns(2)
 
-    nama = row.get("nama_lengkap", "-")
-    tanggal = row.get("tanggal", "-")
+            with c1:
+                f_b64 = row.iloc[9] # Kolom foto
+                if f_b64:
+                    try:
+                        st.image(base64.b64decode(f_b64), width=200, caption="Foto")
+                    except: st.write("Gagal memuat foto")
+                else: st.info("Tidak ada foto")
 
-    st.markdown(f"**👤 {nama}**  |  📅 {tanggal}")
-
-    col1, col2 = st.columns(2)
-
-    # ================= FOTO AMAN =================
-    with col1:
-        try:
-            foto_b64 = row.get("foto", "")
-
-            if foto_b64 and isinstance(foto_b64, str) and foto_b64.strip():
-
-                foto_bytes = base64.b64decode(foto_b64)
-
-                if len(foto_bytes) > 0:
-                    img = Image.open(io.BytesIO(foto_bytes))
-                    st.image(img, width=180)
-                else:
-                    st.info("Foto kosong")
-
-            else:
-                st.info("Foto tidak tersedia")
-
-        except Exception:
-            st.info("Foto rusak / tidak bisa dibaca")
-
-    # ================= TTD AMAN =================
-    with col2:
-        try:
-            ttd_b64 = row.get("tanda_tangan", "")
-
-            if ttd_b64 and isinstance(ttd_b64, str) and ttd_b64.strip():
-
-                ttd_bytes = base64.b64decode(ttd_b64)
-
-                if len(ttd_bytes) > 0:
-                    img = Image.open(io.BytesIO(ttd_bytes))
-                    st.image(img, width=180)
-                else:
-                    st.info("TTD kosong")
-
-            else:
-                st.info("Tanda tangan tidak tersedia")
-
-        except Exception:
-            st.info("Tanda tangan rusak / tidak bisa dibaca")
-
-    st.divider()
+            with c2:
+                t_b64 = row.iloc[10] # Kolom TTD
+                if t_b64:
+                    try:
+                        st.image(base64.b64decode(t_b64), width=200, caption="TTD")
+                    except: st.write("Gagal memuat TTD")
+                else: st.info("Tidak ada TTD")
+            st.divider()
 
 # ================= EXPORT =================
 csv = df.to_csv(index=False).encode("utf-8")
