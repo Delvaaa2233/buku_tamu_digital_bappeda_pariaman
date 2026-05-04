@@ -1,261 +1,141 @@
 import streamlit as st
-import gspread
-from google.oauth2.service_account import Credentials
-from datetime import datetime, date
-from streamlit_drawable_canvas import st_canvas
-from PIL import Image
-import os
 import pandas as pd
-import base64
-import io
+from datetime import datetime
+from fpdf import FPDF
+from streamlit_drawable_canvas import st_canvas
+import os
+from PIL import Image
 
-# ================= GOOGLE SHEETS =================
-scope = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
-
-creds_dict = st.secrets["gcp_service_account"]
-creds = Credentials.from_service_account_info(creds_dict, scopes=scope)
-client = gspread.authorize(creds)
-
-SPREADSHEET_ID = "1lBGe8ZTLBICZz5dbDgPqwNiv4FO-CEFmcSnczYNUxz8"
-sheet = client.open_by_key(SPREADSHEET_ID).sheet1
-
-# ================= SETUP =================
+DATA_FILE = "data.xlsx"
 FOTO_DIR = "foto_tamu"
+
+# Pastikan folder foto ada
 if not os.path.exists(FOTO_DIR):
     os.makedirs(FOTO_DIR)
 
-st.set_page_config(
-    page_title="Buku Tamu Digital BAPPEDA",
-    page_icon="📘",
-    layout="wide"
-)
+# Load data
+try:
+    df = pd.read_excel(DATA_FILE, engine="openpyxl")
+    # 🔹 Pastikan kolom tanggal jadi datetime
+    if not df.empty and df["tanggal"].dtype == "object":
+        df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
+except FileNotFoundError:
+    df = pd.DataFrame(columns=[
+        "tanggal", "tanggal_spt", "nama_lengkap", "nip", "jabatan", "opd",
+        "nomor_hp", "bidang_tujuan", "maksud_kunjungan", "foto", "tanda_tangan", "kesan_pesan"
+    ])
 
-# ================= STYLE =================
-st.markdown("""
-<style>
-.main { background-color: #f4f6f9; }
+# Sidebar menu (hapus menu Laporan)
+menu = st.sidebar.radio("Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu"])
 
-.header {
-    background: linear-gradient(90deg,#0d47a1,#1976d2);
-    padding: 20px;
-    border-radius: 12px;
-    color: white;
-    text-align: center;
-}
-
-.card {
-    background: white;
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0px 4px 10px rgba(0,0,0,0.05);
-    margin-bottom: 20px;
-}
-
-.stButton>button {
-    background-color:#0d47a1;
-    color:white;
-    border-radius:8px;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ================= HEADER =================
-st.markdown("""
-<div class="header">
-<h1>📘 BUKU TAMU DIGITAL</h1>
-<h3>BAPPEDA KOTA PARIAMAN</h3>
-</div>
-""", unsafe_allow_html=True)
-
-# ================= MENU =================
-menu = st.sidebar.radio("📌 Menu", ["Halaman Utama", "Ringkasan Statistik", "Daftar Buku Tamu"])
-
-# ================= HALAMAN UTAMA =================
+# Halaman Utama
 if menu == "Halaman Utama":
-    st.title("📘 Selamat Datang di Buku Tamu Digital")
+    st.title("📘 Selamat Datang di Buku Tamu Digital BAPPEDA Kota Pariaman")
 
-    with st.form("form_tamu", clear_on_submit=True):
+    tanggal = st.date_input("Tanggal")
+    tanggal_spt = st.date_input("Tanggal SPT")
+    nama = st.text_input("Nama Lengkap")
+    nip = st.text_input("NIP")
+    jabatan = st.text_input("Jabatan")
+    opd = st.text_input("OPD")
+    nomor_hp = st.text_input("Nomor HP")
+    bidang = st.selectbox("Bidang Tujuan", ["Sekretariat", "Bidang Litbang", "Bidang Ekonomi", "Bidang Sarana"])
+    maksud = st.text_area("Maksud Kunjungan")
+    kesan = st.text_area("Kesan dan Pesan")
 
-        col1, col2 = st.columns(2)
+    # 🔹 Fitur Kamera
+    st.subheader("📷 Ambil Foto")
+    foto = st.camera_input("Ambil foto tamu")
 
-        with col1:
-            tanggal = st.date_input("Tanggal", value=date.today())
-            tanggal_spt = st.date_input("Tanggal SPT", value=date.today())
-            nama = st.text_input("Nama Lengkap *")
-            nip = st.text_input("NIP")
-            jabatan = st.text_input("Jabatan")
+    foto_path = ""
+    if foto is not None and nama:
+        foto_filename = f"{FOTO_DIR}/foto_{nama}_{tanggal}.png"
+        with open(foto_filename, "wb") as f:
+            f.write(foto.getbuffer())
+        foto_path = foto_filename
 
-        with col2:
-            opd = st.text_input("OPD")
-            nomor_hp = st.text_input("Nomor HP")
-            bidang = st.selectbox("Bidang Tujuan", [
-                "Sekretariat",
-                "Bidang Litbang",
-                "Bidang Ekonomi",
-                "Bidang Sarana dan Prasarana Wilayah",
-                "Bidang Pemerintahan dan Sosial Budaya"
-            ])
+    # 🔹 Fitur Tanda Tangan
+    st.subheader("✍️ Tanda Tangan Digital")
+    canvas_result = st_canvas(
+        fill_color="rgba(255, 255, 255, 0)",
+        stroke_width=2,
+        stroke_color="#000000",
+        background_color="#FFFFFF",
+        update_streamlit=True,
+        height=200,
+        width=400,
+        drawing_mode="freedraw",
+        key="tanda_tangan",
+    )
 
-        maksud = st.text_area("Maksud Kunjungan *")
-        kesan = st.text_area("Kesan dan Pesan")
+    tanda_tangan_path = ""
+    if canvas_result.image_data is not None and nama:
+        tanda_filename = f"{FOTO_DIR}/ttd_{nama}_{tanggal}.png"
+        Image.fromarray(canvas_result.image_data.astype("uint8")).save(tanda_filename)
+        tanda_tangan_path = tanda_filename
 
-        # ================= FOTO =================
-        st.subheader("📷 Ambil Foto")
-        foto = st.camera_input("Ambil foto tamu")
+    if st.button("Simpan"):
+        new_data = pd.DataFrame({
+            "tanggal":[tanggal],
+            "tanggal_spt":[tanggal_spt],
+            "nama_lengkap":[nama],
+            "nip":[nip],
+            "jabatan":[jabatan],
+            "opd":[opd],
+            "nomor_hp":[nomor_hp],
+            "bidang_tujuan":[bidang],
+            "maksud_kunjungan":[maksud],
+            "foto":[foto_path],
+            "tanda_tangan":[tanda_tangan_path],
+            "kesan_pesan":[kesan]
+        })
+        df = pd.concat([df, new_data], ignore_index=True)
+        df.to_excel(DATA_FILE, index=False)
+        st.success("Data berhasil disimpan!")
 
-        foto_base64 = ""
-        if foto is not None:
-            foto_bytes = foto.getvalue()
-            foto_base64 = base64.b64encode(foto_bytes).decode()
-            st.image(foto_bytes, caption="Preview Foto", width=200)
-
-        # ================= TANDA TANGAN =================
-        st.subheader("✍️ Tanda Tangan Digital")
-
-        canvas_result = st_canvas(
-            fill_color="rgba(255, 255, 255, 0)",
-            stroke_width=2,
-            stroke_color="#000000",
-            background_color="#FFFFFF",
-            update_streamlit=True,
-            height=200,
-            width=400,
-            drawing_mode="freedraw",
-            key="tanda_tangan",
-        )
-
-        ttd_base64 = ""
-        if canvas_result.image_data is not None:
-            img = Image.fromarray(canvas_result.image_data.astype("uint8"))
-            buf = io.BytesIO()
-            img.save(buf, format="PNG")
-
-            ttd_bytes = buf.getvalue()
-            ttd_base64 = base64.b64encode(ttd_bytes).decode()
-
-            st.image(ttd_bytes, caption="Preview Tanda Tangan", width=200)
-
-        # ================= SIMPAN =================
-        submitted = st.form_submit_button("💾 Simpan Data")
-
-        if submitted:
-            if nama == "" or maksud == "":
-                st.warning("⚠️ Nama dan Maksud Kunjungan wajib diisi!")
-            else:
-                with st.spinner("Menyimpan data..."):
-                    sheet.append_row([
-                        str(tanggal),
-                        str(tanggal_spt),
-                        nama,
-                        nip,
-                        jabatan,
-                        opd,
-                        nomor_hp,
-                        bidang,
-                        maksud,
-                        foto_base64,
-                        ttd_base64,
-                        kesan
-                    ])
-                st.success(f"✅ Data tamu {nama} berhasil disimpan!")
-
-# ================= RINGKASAN =================
+# Ringkasan Statistik
 elif menu == "Ringkasan Statistik":
-    st.title("📊 Dashboard Statistik")
-
-    data = sheet.get_all_values()
-
-    if len(data) > 1:
-        df = pd.DataFrame(data[1:], columns=data[0])
+    st.header("📊 Ringkasan Statistik")
+    if not df.empty:
+        today = datetime.today().date()
+        # Pastikan kolom tanggal sudah datetime
         df["tanggal"] = pd.to_datetime(df["tanggal"], errors="coerce")
 
-        today = datetime.today()
-
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Hari Ini", len(df[df["tanggal"].dt.date == today.date()]))
-        col2.metric("Bulan Ini", len(df[df["tanggal"].dt.month == today.month]))
-        col3.metric("Tahun Ini", len(df[df["tanggal"].dt.year == today.year]))
-
-        st.subheader("📊 Distribusi Bidang")
-        st.bar_chart(df["bidang"].value_counts())
-
-        st.subheader("📈 Tren Kunjungan")
-        st.line_chart(df.groupby(df["tanggal"].dt.date).size())
-
+        st.write(f"Tamu hari ini: {len(df[df['tanggal'].dt.date == today])}")
+        st.write(f"Tamu bulan ini: {len(df[df['tanggal'].dt.month == today.month])}")
+        st.write(f"Tamu tahun ini: {len(df[df['tanggal'].dt.year == today.year])}")
     else:
         st.info("Belum ada data tamu.")
 
-# ================= DAFTAR =================
+# Daftar Buku Tamu
 elif menu == "Daftar Buku Tamu":
-    st.title("📑 Daftar Buku Tamu")
+    st.header("📑 Daftar Buku Tamu")
+    if not df.empty:
+        st.dataframe(df)
 
-    data = sheet.get_all_values()
+        # 🔹 Tampilkan foto & tanda tangan history
+        st.subheader("📷 History Foto & ✍️ Tanda Tangan")
+        for i, row in df.iterrows():
+            st.write(f"Nama: {row['nama_lengkap']} | Tanggal: {row['tanggal']}")
+            if row["foto"]:
+                st.image(row["foto"], caption="Foto Tamu", width=200)
+            if row["tanda_tangan"]:
+                st.image(row["tanda_tangan"], caption="Tanda Tangan", width=200)
+            st.write("---")
 
-    if len(data) > 1:
-        df = pd.DataFrame(data[1:], columns=data[0])
+        # 🔹 Fitur Delete Data Tamu
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Index")
+        index_to_delete = st.number_input("Masukkan nomor index tamu", min_value=0, max_value=len(df)-1, step=1)
+        if st.button("Delete by Index"):
+            df = df.drop(index_to_delete).reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan index {index_to_delete} berhasil dihapus!")
 
-        # SEARCH
-        search = st.text_input("🔍 Cari Nama")
-        if search:
-            df = df[df["nama_lengkap"].str.contains(search, case=False)]
+        st.subheader("🗑️ Hapus Data Tamu berdasarkan Nama")
+        nama_to_delete = st.selectbox("Pilih nama tamu", df["nama_lengkap"].unique())
+        if st.button("Delete by Name"):
+            df = df[df["nama_lengkap"] != nama_to_delete].reset_index(drop=True)
+            df.to_excel(DATA_FILE, index=False)
+            st.success(f"Data tamu dengan nama {nama_to_delete} berhasil dihapus!")
 
-        st.dataframe(df, use_container_width=True)
-
-st.subheader("📷 Dokumentasi")
-
-for _, row in df.iterrows():
-
-    nama = row.get("nama_lengkap", "-")
-    tanggal = row.get("tanggal", "-")
-
-    st.markdown(f"**{nama}** | {tanggal}")
-
-    col1, col2 = st.columns(2)
-
-    # ================= FOTO =================
-    with col1:
-        try:
-            foto_data = row.get("foto", "")
-
-            if foto_data and isinstance(foto_data, str) and foto_data.strip() != "":
-                decoded_foto = base64.b64decode(foto_data)
-                st.image(decoded_foto, width=200)
-            else:
-                st.info("Tidak ada foto")
-
-        except Exception:
-            st.warning("Foto rusak / tidak bisa ditampilkan")
-
-    # ================= TTD =================
-    with col2:
-        try:
-            ttd_data = row.get("tanda_tangan", "")
-
-            if ttd_data and isinstance(ttd_data, str) and ttd_data.strip() != "":
-                decoded_ttd = base64.b64decode(ttd_data)
-                st.image(decoded_ttd, width=200)
-            else:
-                st.info("Tidak ada tanda tangan")
-
-        except Exception:
-            st.warning("Tanda tangan rusak / tidak bisa ditampilkan")
-
-    st.divider()
-
-        # EXPORT CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download CSV", csv, "buku_tamu.csv", "text/csv")
-
-        # DELETE
-        st.subheader("🗑️ Hapus Data")
-        row_to_delete = st.number_input("Nomor baris (lihat tabel)", min_value=2)
-
-        if st.button("Hapus Data"):
-            sheet.delete_rows(int(row_to_delete))
-            st.success("Data berhasil dihapus")
-
-    else:
-        st.info("Belum ada data tamu.")
+        
