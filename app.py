@@ -77,60 +77,80 @@ st.markdown("""
 # ================== MENU ==================
 menu = st.sidebar.radio("📌 Menu", ["Input Tamu", "Dashboard", "Daftar Tamu"])
 
-# ================== INPUT ==================
-if menu == "Input Tamu":
-    st.markdown('<div class="card">', unsafe_allow_html=True)
+# --- Halaman Utama ---
+if menu == "Halaman Utama":
+    st.title("📘 Selamat Datang di Buku Tamu Digital BAPPEDA Kota Pariaman")
 
-    st.subheader("📝 Form Buku Tamu")
+    with st.form("form_tamu", clear_on_submit=True):
+        tanggal = st.date_input("Tanggal", value=date.today())
+        tanggal_spt = st.date_input("Tanggal SPT", value=date.today())
+        nama = st.text_input("Nama Lengkap")
+        nip = st.text_input("NIP")
+        jabatan = st.text_input("Jabatan")
+        opd = st.text_input("OPD")
+        nomor_hp = st.text_input("Nomor HP")
 
-    with st.form("form"):
-        col1, col2 = st.columns(2)
-
-        with col1:
-            tanggal = st.date_input("Tanggal", value=date.today())
-            nama = st.text_input("Nama Lengkap")
-            nip = st.text_input("NIP")
-            jabatan = st.text_input("Jabatan")
-
-        with col2:
-            opd = st.text_input("OPD")
-            nomor_hp = st.text_input("Nomor HP")
-            bidang = st.selectbox("Bidang Tujuan", [
-                "Sekretariat", "Litbang", "Ekonomi",
-                "Sarana & Prasarana", "Pemerintahan & Sosial"
-            ])
+        bidang = st.selectbox("Bidang Tujuan", [
+            "Sekretariat",
+            "Bidang Litbang",
+            "Bidang Ekonomi",
+            "Bidang Sarana dan Prasarana Wilayah",
+            "Bidang Pemerintahan dan Sosial Budaya"
+        ])
 
         maksud = st.text_area("Maksud Kunjungan")
-        kesan = st.text_area("Kesan & Pesan")
+        kesan = st.text_area("Kesan dan Pesan")
 
-        # FOTO
-        st.subheader("📷 Foto")
-        foto = st.camera_input("Ambil Foto")
+        # ================= FOTO =================
+        st.subheader("📷 Ambil Foto")
+        foto = st.camera_input("Ambil foto tamu")
+
+        import base64, io
         foto_base64 = ""
-        if foto:
+        if foto is not None:
             foto_base64 = base64.b64encode(foto.getvalue()).decode()
 
-        # TTD
-        st.subheader("✍️ Tanda Tangan")
-        canvas = st_canvas(height=200, width=400)
+        # ================= TANDA TANGAN =================
+        st.subheader("✍️ Tanda Tangan Digital")
+        canvas_result = st_canvas(
+            fill_color="rgba(255, 255, 255, 0)",
+            stroke_width=2,
+            stroke_color="#000000",
+            background_color="#FFFFFF",
+            update_streamlit=True,
+            height=200,
+            width=400,
+            drawing_mode="freedraw",
+            key="tanda_tangan",
+        )
 
         ttd_base64 = ""
-        if canvas.image_data is not None:
-            img = Image.fromarray(canvas.image_data.astype("uint8"))
+        if canvas_result.image_data is not None:
+            img = Image.fromarray(canvas_result.image_data.astype("uint8"))
             buf = io.BytesIO()
             img.save(buf, format="PNG")
             ttd_base64 = base64.b64encode(buf.getvalue()).decode()
 
-        submit = st.form_submit_button("💾 Simpan Data")
+        # ================= SIMPAN =================
+        submitted = st.form_submit_button("💾 Simpan Data")
 
-        if submit:
+        if submitted:
             sheet.append_row([
-                str(tanggal), nama, nip, jabatan, opd,
-                nomor_hp, bidang, maksud, foto_base64, ttd_base64, kesan
+                str(tanggal),
+                str(tanggal_spt),
+                nama,
+                nip,
+                jabatan,
+                opd,
+                nomor_hp,
+                bidang,
+                maksud,
+                foto_base64,
+                ttd_base64,
+                kesan
             ])
-            st.success("Data berhasil disimpan")
 
-    st.markdown('</div>', unsafe_allow_html=True)
+            st.success(f"Data tamu {nama} berhasil disimpan!")
 
 # ================== DASHBOARD ==================
 elif menu == "Dashboard":
