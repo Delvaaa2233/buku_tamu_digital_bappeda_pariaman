@@ -21,7 +21,7 @@ creds = Credentials.from_service_account_info(
 )
 client = gspread.authorize(creds)
 
-sheet = client.open_by_key("ISI_ID_SHEET_KAMU").sheet1
+sheet = client.open_by_key("https://docs.google.com/spreadsheets/d/1lBGe8ZTLBICZz5dbDgPqwNiv4FO-CEFmcSnczYNUxz8/edit?usp=sharing").sheet1
 
 # Header
 header = [
