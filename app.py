@@ -204,20 +204,27 @@ elif menu == "Daftar Buku Tamu":
 
         st.dataframe(df, use_container_width=True)
 
-        st.subheader("📷 Dokumentasi")
+         st.subheader("📷 Dokumentasi")
 
         for _, row in df.iterrows():
-            st.markdown(f"**{row['nama_lengkap']}** | {row['tanggal']}")
+
+            st.markdown(f"**{row.get('nama_lengkap','-')}** | {row.get('tanggal','-')}")
 
             col1, col2 = st.columns(2)
 
             with col1:
-                if row["foto"]:
-                    st.image(base64.b64decode(row["foto"]), width=200)
+                foto = safe_b64_image(row.get("foto",""))
+                if foto:
+                    st.image(foto, width=200)
+                else:
+                    st.info("Tidak ada foto")
 
             with col2:
-                if row["tanda_tangan"]:
-                    st.image(base64.b64decode(row["tanda_tangan"]), width=200)
+                ttd = safe_b64_image(row.get("tanda_tangan",""))
+                if ttd:
+                    st.image(ttd, width=200)
+                else:
+                    st.info("Tidak ada tanda tangan")
 
             st.divider()
 
