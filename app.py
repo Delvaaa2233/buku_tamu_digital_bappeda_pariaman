@@ -247,9 +247,12 @@ for _, row in df.iterrows():
             st.info("Tanda tangan rusak / tidak bisa dibaca")
 
     st.divider()
-        # EXPORT CSV
-        csv = df.to_csv(index=False).encode("utf-8")
-        st.download_button("📥 Download CSV", csv, "buku_tamu.csv", "text/csv")
 
-    else:
-        st.info("Belum ada data tamu")
+# ================= EXPORT =================
+csv = df.to_csv(index=False).encode("utf-8")
+st.download_button(
+    "📥 Download Data CSV",
+    csv,
+    "buku_tamu.csv",
+    "text/csv"
+)
