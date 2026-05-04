@@ -204,29 +204,46 @@ elif menu == "Daftar Buku Tamu":
 
         st.dataframe(df, use_container_width=True)
 
-         st.subheader("📷 Dokumentasi")
+st.subheader("📷 Dokumentasi")
 
-        for _, row in df.iterrows():
+for _, row in df.iterrows():
 
-            st.markdown(f"**{row.get('nama_lengkap','-')}** | {row.get('tanggal','-')}")
+    nama = row.get("nama_lengkap", "-")
+    tanggal = row.get("tanggal", "-")
 
-            col1, col2 = st.columns(2)
+    st.markdown(f"**{nama}** | {tanggal}")
 
-            with col1:
-                foto = safe_b64_image(row.get("foto",""))
-                if foto:
-                    st.image(foto, width=200)
-                else:
-                    st.info("Tidak ada foto")
+    col1, col2 = st.columns(2)
 
-            with col2:
-                ttd = safe_b64_image(row.get("tanda_tangan",""))
-                if ttd:
-                    st.image(ttd, width=200)
-                else:
-                    st.info("Tidak ada tanda tangan")
+    # ================= FOTO =================
+    with col1:
+        try:
+            foto_data = row.get("foto", "")
 
-            st.divider()
+            if foto_data and isinstance(foto_data, str) and foto_data.strip() != "":
+                decoded_foto = base64.b64decode(foto_data)
+                st.image(decoded_foto, width=200)
+            else:
+                st.info("Tidak ada foto")
+
+        except Exception:
+            st.warning("Foto rusak / tidak bisa ditampilkan")
+
+    # ================= TTD =================
+    with col2:
+        try:
+            ttd_data = row.get("tanda_tangan", "")
+
+            if ttd_data and isinstance(ttd_data, str) and ttd_data.strip() != "":
+                decoded_ttd = base64.b64decode(ttd_data)
+                st.image(decoded_ttd, width=200)
+            else:
+                st.info("Tidak ada tanda tangan")
+
+        except Exception:
+            st.warning("Tanda tangan rusak / tidak bisa ditampilkan")
+
+    st.divider()
 
         # EXPORT CSV
         csv = df.to_csv(index=False).encode("utf-8")
