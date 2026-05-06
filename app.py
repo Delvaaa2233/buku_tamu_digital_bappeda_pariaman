@@ -193,5 +193,3 @@ elif menu == "Daftar Buku Tamu":
 
     else:
         st.info("Belum ada data tamu.")
-    else:
-        st.info("Belum ada data tamu.")
