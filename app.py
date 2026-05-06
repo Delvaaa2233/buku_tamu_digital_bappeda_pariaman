@@ -54,65 +54,71 @@ if menu == "Halaman Utama":
     st.title("📘 Selamat Datang di Buku Tamu Digital BAPPEDA Kota Pariaman")
 
     with st.form("form_tamu", clear_on_submit=True):
+
+        # INPUT
         tanggal = st.date_input("Tanggal", value=date.today())
         nama = st.text_input("Nama Lengkap")
-        opd = st.text_input("Asal / OPD") 
+        opd = st.text_input("Asal / OPD")
         nomor_hp = st.text_input("Nomor HP")
+
         bidang = st.selectbox("Bidang Tujuan", [
             "Sekretariat", "Bidang Litbang", "Bidang Ekonomi",
-            "Bidang Sarana dan Prasarana Wilayah", "Bidang Pemeritahan dan Sosia Budaya"
+            "Bidang Sarana dan Prasarana Wilayah",
+            "Bidang Pemerintahan dan Sosial Budaya"
         ])
-        
-# ================= FOTO TAMU =================
-st.subheader("📷 Foto Tamu")
-foto_tamu = st.camera_input("Ambil foto tamu")
 
-foto_tamu_path = ""
-if foto_tamu is not None and nama.strip() != "":
-    nama_file = nama.replace(" ", "_").replace("/", "_")
-    foto_tamu_filename = f"{FOTO_DIR}/foto_{nama_file}_{tanggal}.png"
+        # FOTO TAMU
+        st.subheader("📷 Foto Tamu (Wajib)")
+        foto_tamu = st.camera_input("Ambil foto tamu")
 
-    with open(foto_tamu_filename, "wb") as f:
-        f.write(foto_tamu.getbuffer())
+        # FOTO SPT
+        st.subheader("📄 Foto SPT")
+        foto_spt = st.camera_input("Ambil foto SPT")
 
-    foto_tamu_path = foto_tamu_filename
+        # SUBMIT (WAJIB DI DALAM FORM)
+        submitted = st.form_submit_button("💾 Simpan Data")
 
+        if submitted:
+            # VALIDASI
+            if nama.strip() == "":
+                st.warning("Nama wajib diisi!")
+            elif opd.strip() == "":
+                st.warning("Asal/OPD wajib diisi!")
+            elif nomor_hp.strip() == "":
+                st.warning("Nomor HP wajib diisi!")
+            elif foto_tamu is None:
+                st.warning("Foto tamu wajib diambil!")
+            else:
+                try:
+                    nama_file = nama.replace(" ", "_").replace("/", "_")
 
-# ================= FOTO SPT =================
-st.subheader("📄 Foto SPT")
-foto_spt = st.camera_input("Ambil foto SPT")
+                    # SIMPAN FOTO TAMU
+                    foto_tamu_path = f"{FOTO_DIR}/foto_{nama_file}_{tanggal}.png"
+                    with open(foto_tamu_path, "wb") as f:
+                        f.write(foto_tamu.getbuffer())
 
-foto_spt_path = ""
-if foto_spt is not None and nama.strip() != "":
-    nama_file = nama.replace(" ", "_").replace("/", "_")
-    foto_spt_filename = f"{FOTO_DIR}/spt_{nama_file}_{tanggal}.png"
+                    # SIMPAN FOTO SPT
+                    foto_spt_path = ""
+                    if foto_spt is not None:
+                        foto_spt_path = f"{FOTO_DIR}/spt_{nama_file}_{tanggal}.png"
+                        with open(foto_spt_path, "wb") as f:
+                            f.write(foto_spt.getbuffer())
 
-    with open(foto_spt_filename, "wb") as f:
-        f.write(foto_spt.getbuffer())
+                    # SIMPAN KE GOOGLE SHEETS
+                    sheet.append_row([
+                        str(tanggal),
+                        nama,
+                        opd,
+                        nomor_hp,
+                        bidang,
+                        foto_tamu_path,
+                        foto_spt_path
+                    ], value_input_option="USER_ENTERED")
 
-    foto_spt_path = foto_spt_filename
+                    st.success(f"Data tamu {nama} berhasil disimpan!")
 
-submitted = st.form_submit_button("💾 Simpan Data")
-
-if submitted:
-    try:
-        sheet.append_row([
-            str(tanggal),
-            nama,
-            nip,
-            jabatan,
-            opd,
-            nomor_hp,
-            bidang,
-            foto_tamu_path,
-            foto_spt_path,
-            tanda_tangan_path
-        ], value_input_option="USER_ENTERED")
-
-        st.success(f"Data tamu {nama} berhasil disimpan!")
-
-    except Exception as e:
-        st.error(f"Gagal menyimpan data: {e}")
+                except Exception as e:
+                    st.error(f"Gagal menyimpan data: {e}")
 
 # --- Ringkasan Statistik ---
 elif menu == "Ringkasan Statistik":
