@@ -73,57 +73,169 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS
+# CUSTOM CSS FINAL SIDEBAR
 # =========================================================
 
 st.markdown("""
 <style>
 
+/* =====================================================
+GLOBAL
+===================================================== */
+
 html, body, [class*="css"] {
     font-family: 'Segoe UI', sans-serif;
 }
+
+/* =====================================================
+BACKGROUND UTAMA
+===================================================== */
 
 .main {
     background-color: #F4F7FE;
 }
 
+/* =====================================================
+SIDEBAR
+===================================================== */
+
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg,#0B1F4D,#123A82);
+    background: linear-gradient(
+        180deg,
+        #081F4D 0%,
+        #0D2F75 100%
+    );
 }
+
+/* =====================================================
+TEXT SIDEBAR
+===================================================== */
+
+section[data-testid="stSidebar"] * {
+    color: white !important;
+}
+
+/* =====================================================
+JUDUL SIDEBAR
+===================================================== */
+
+.sidebar-title {
+    color: white !important;
+    font-size: 30px;
+    font-weight: 700;
+    margin-bottom: 5px;
+}
+
+/* =====================================================
+SUBTITLE
+===================================================== */
+
+.sidebar-subtitle {
+    color: #D1D5DB !important;
+    font-size: 15px;
+    margin-bottom: 25px;
+}
+
+/* =====================================================
+RADIO BUTTON MENU
+===================================================== */
+
+.stRadio label {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: 500;
+}
+
+/* =====================================================
+MENU TEXT
+===================================================== */
+
+.st-emotion-cache-16txtl3 {
+    color: white !important;
+}
+
+/* =====================================================
+LABEL MENU
+===================================================== */
+
+.st-emotion-cache-1cypcdb {
+    color: white !important;
+}
+
+/* =====================================================
+HEADER
+===================================================== */
 
 h1, h2, h3 {
     color: #0B1F4D;
 }
 
+/* =====================================================
+BUTTON
+===================================================== */
+
 .stButton>button {
-    background: linear-gradient(90deg,#2563EB,#1D4ED8);
-    color: white;
+    background: linear-gradient(
+        90deg,
+        #2563EB,
+        #1D4ED8
+    );
+
+    color: white !important;
+
     border-radius: 10px;
     border: none;
+
     padding: 0.75rem;
+
     font-weight: bold;
     width: 100%;
 }
 
+/* =====================================================
+DOWNLOAD BUTTON
+===================================================== */
+
 .stDownloadButton>button {
-    background: linear-gradient(90deg,#10B981,#059669);
-    color: white;
+    background: linear-gradient(
+        90deg,
+        #10B981,
+        #059669
+    );
+
+    color: white !important;
+
     border-radius: 10px;
     border: none;
+
     padding: 0.75rem;
+
     font-weight: bold;
     width: 100%;
 }
+
+/* =====================================================
+BLOCK CONTAINER
+===================================================== */
 
 .block-container {
     padding-top: 2rem;
 }
 
+/* =====================================================
+CARD
+===================================================== */
+
 .card {
     background: white;
+
     padding: 25px;
+
     border-radius: 15px;
-    box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
+
+    box-shadow:
+        0px 3px 12px rgba(0,0,0,0.08);
+
     margin-bottom: 20px;
 }
 
@@ -177,8 +289,15 @@ if not os.path.exists(FOTO_DIR):
 # SIDEBAR
 # =========================================================
 
-st.sidebar.title("📘 Buku Tamu Digital")
-st.sidebar.caption("BAPPEDA Kota Pariaman")
+st.sidebar.markdown("""
+<div class="sidebar-title">
+📘 Buku Tamu Digital
+</div>
+
+<div class="sidebar-subtitle">
+BAPPEDA Kota Pariaman
+</div>
+""", unsafe_allow_html=True)
 
 menu = st.sidebar.radio(
     "📌 Menu",
@@ -193,7 +312,7 @@ menu = st.sidebar.radio(
 # =========================================================
 # LOAD DATA
 # =========================================================
-
+0
 def load_data():
 
     try:
