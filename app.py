@@ -1,14 +1,19 @@
 # =========================================================
 # BUKU TAMU DIGITAL BAPPEDA KOTA PARIAMAN
-# VERSI PROFESIONAL FINAL 2026
+# FINAL VERSION - NO ERROR
 # =========================================================
 
-# INSTALL :
-# pip install streamlit gspread google-auth pandas openpyxl
-# pip install python-docx reportlab pillow plotly
-
-# RUN :
-# streamlit run app.py
+# requirements.txt
+# ---------------------------------------------------------
+# streamlit
+# gspread
+# google-auth
+# pandas
+# openpyxl
+# python-docx
+# reportlab
+# pillow
+# ---------------------------------------------------------
 
 # =========================================================
 # IMPORT
@@ -18,7 +23,6 @@ import streamlit as st
 import pandas as pd
 import gspread
 import os
-import plotly.express as px
 
 from io import BytesIO
 from datetime import datetime
@@ -48,7 +52,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS
+# CSS
 # =========================================================
 
 st.markdown("""
@@ -64,29 +68,10 @@ html, body, [class*="css"] {
 
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg,#081F4D,#0A2C6B);
-    color: white;
 }
 
-.sidebar-title {
-    color: white;
-    font-size: 28px;
-    font-weight: bold;
-}
-
-.card {
-    background: white;
-    padding: 25px;
-    border-radius: 18px;
-    box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
-    margin-bottom: 20px;
-}
-
-.metric-card {
-    background: white;
-    padding: 25px;
-    border-radius: 18px;
-    text-align: center;
-    box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
+h1, h2, h3 {
+    color: #1E3A8A;
 }
 
 .stButton>button {
@@ -94,8 +79,8 @@ section[data-testid="stSidebar"] {
     color: white;
     border-radius: 10px;
     border: none;
-    font-weight: bold;
     padding: 0.7rem;
+    font-weight: bold;
     width: 100%;
 }
 
@@ -104,9 +89,13 @@ section[data-testid="stSidebar"] {
     color: white;
     border-radius: 10px;
     border: none;
-    font-weight: bold;
     padding: 0.7rem;
+    font-weight: bold;
     width: 100%;
+}
+
+.block-container {
+    padding-top: 2rem;
 }
 
 </style>
@@ -146,24 +135,18 @@ if not os.path.exists(FOTO_DIR):
     os.makedirs(FOTO_DIR)
 
 # =========================================================
-# HEADER SIDEBAR
+# HEADER
 # =========================================================
 
-st.sidebar.markdown("""
-<div class="sidebar-title">
-📘 BUKU TAMU DIGITAL
-</div>
-<p style='color:white'>
-BAPPEDA Kota Pariaman
-</p>
-""", unsafe_allow_html=True)
+st.sidebar.title("📘 Buku Tamu Digital")
+st.sidebar.caption("BAPPEDA Kota Pariaman")
 
 # =========================================================
 # MENU
 # =========================================================
 
 menu = st.sidebar.radio(
-    "MENU UTAMA",
+    "📌 Menu Utama",
     [
         "Dashboard",
         "Input Buku Tamu",
@@ -178,38 +161,50 @@ menu = st.sidebar.radio(
 
 def load_data():
 
-    data = sheet.get_all_values()
+    try:
 
-    if len(data) > 1:
+        data = sheet.get_all_values()
 
-        headers = [
-            h.lower().strip()
-            for h in data[0]
-        ]
+        if len(data) > 1:
 
-        df = pd.DataFrame(
-            data[1:],
-            columns=headers
+            headers = [
+                h.lower().strip()
+                for h in data[0]
+            ]
+
+            df = pd.DataFrame(
+                data[1:],
+                columns=headers
+            )
+
+            expected_columns = [
+                "tanggal",
+                "nama",
+                "opd",
+                "nomor_hp",
+                "bidang",
+                "foto",
+                "spt"
+            ]
+
+            for col in expected_columns:
+
+                if col not in df.columns:
+                    df[col] = ""
+
+            return df
+
+        else:
+
+            return pd.DataFrame()
+
+    except Exception as e:
+
+        st.error(
+            f"Gagal mengambil data: {e}"
         )
 
-        expected_cols = [
-            "tanggal",
-            "nama",
-            "opd",
-            "nomor_hp",
-            "bidang",
-            "foto",
-            "spt"
-        ]
-
-        for col in expected_cols:
-
-            if col not in df.columns:
-                df[col] = ""
-
-        return df
-
-    return pd.DataFrame()
+        return pd.DataFrame()
 
 # =========================================================
 # DASHBOARD
@@ -217,10 +212,7 @@ def load_data():
 
 if menu == "Dashboard":
 
-    st.title("Selamat Datang!")
-    st.caption(
-        "Sistem Informasi Buku Tamu Digital BAPPEDA Kota Pariaman"
-    )
+    st.title("📊 Dashboard Buku Tamu")
 
     df = load_data()
 
@@ -243,19 +235,16 @@ if menu == "Dashboard":
 
         tamu_bulan_ini = len(
             df[
-                (df["tanggal"].dt.month == today.month)
+                (df["tanggal"].dt.month == today.month) &
+                (df["tanggal"].dt.year == today.year)
             ]
         )
 
         tamu_tahun_ini = len(
             df[
-                (df["tanggal"].dt.year == today.year)
+                df["tanggal"].dt.year == today.year
             ]
         )
-
-        # =====================================================
-        # METRIC
-        # =====================================================
 
         col1, col2, col3, col4 = st.columns(4)
 
@@ -267,19 +256,19 @@ if menu == "Dashboard":
 
         with col2:
             st.metric(
-                "📅 Tamu Hari Ini",
+                "📅 Hari Ini",
                 tamu_hari_ini
             )
 
         with col3:
             st.metric(
-                "🗓️ Tamu Bulan Ini",
+                "🗓️ Bulan Ini",
                 tamu_bulan_ini
             )
 
         with col4:
             st.metric(
-                "📆 Tamu Tahun Ini",
+                "📆 Tahun Ini",
                 tamu_tahun_ini
             )
 
@@ -289,58 +278,22 @@ if menu == "Dashboard":
         # GRAFIK
         # =====================================================
 
-        grafik_col1, grafik_col2 = st.columns([2,1])
+        st.subheader("📈 Grafik Kunjungan")
 
-        with grafik_col1:
+        grafik = (
+            df.groupby(df["tanggal"].dt.date)
+            .size()
+            .reset_index(name="Jumlah")
+        )
 
-            st.subheader("📈 Grafik Kunjungan")
+        grafik.columns = [
+            "Tanggal",
+            "Jumlah"
+        ]
 
-            grafik = (
-                df.groupby(
-                    df["tanggal"].dt.date
-                )
-                .size()
-                .reset_index(name="Jumlah")
-            )
-
-            fig = px.line(
-                grafik,
-                x="tanggal",
-                y="Jumlah",
-                markers=True
-            )
-
-            st.plotly_chart(
-                fig,
-                use_container_width=True
-            )
-
-        with grafik_col2:
-
-            st.subheader("📊 Statistik Bidang")
-
-            bidang_count = (
-                df["bidang"]
-                .value_counts()
-                .reset_index()
-            )
-
-            bidang_count.columns = [
-                "Bidang",
-                "Jumlah"
-            ]
-
-            fig2 = px.pie(
-                bidang_count,
-                names="Bidang",
-                values="Jumlah",
-                hole=0.5
-            )
-
-            st.plotly_chart(
-                fig2,
-                use_container_width=True
-            )
+        st.line_chart(
+            grafik.set_index("Tanggal")
+        )
 
         st.divider()
 
@@ -350,12 +303,10 @@ if menu == "Dashboard":
 
         st.subheader("📋 Data Tamu Terbaru")
 
-        tampil_df = df.tail(10)
-
         st.dataframe(
-            tampil_df,
+            df.tail(10),
             use_container_width=True,
-            height=400
+            height=350
         )
 
     else:
@@ -427,11 +378,15 @@ elif menu == "Input Buku Tamu":
                 "📄 Foto SPT *"
             )
 
+        # =====================================================
+        # PREVIEW FOTO
+        # =====================================================
+
         st.subheader("👁️ Preview Foto")
 
-        prev1, prev2 = st.columns(2)
+        p1, p2 = st.columns(2)
 
-        with prev1:
+        with p1:
 
             if foto_tamu:
                 st.image(
@@ -440,7 +395,7 @@ elif menu == "Input Buku Tamu":
                     use_container_width=True
                 )
 
-        with prev2:
+        with p2:
 
             if foto_spt:
                 st.image(
@@ -453,15 +408,19 @@ elif menu == "Input Buku Tamu":
             "💾 Simpan Data"
         )
 
+        # =====================================================
+        # VALIDASI
+        # =====================================================
+
         if submit:
 
-            if nama == "":
+            if nama.strip() == "":
                 st.error("Nama wajib diisi.")
 
-            elif opd == "":
+            elif opd.strip() == "":
                 st.error("Asal / OPD wajib diisi.")
 
-            elif nomor_hp == "":
+            elif nomor_hp.strip() == "":
                 st.error("Nomor HP wajib diisi.")
 
             elif bidang == "":
@@ -513,7 +472,7 @@ elif menu == "Input Buku Tamu":
                             foto_spt.getbuffer()
                         )
 
-                    # SIMPAN GOOGLE SHEETS
+                    # SIMPAN DATA
                     sheet.append_row([
                         tanggal,
                         nama,
@@ -533,7 +492,7 @@ elif menu == "Input Buku Tamu":
                 except Exception as e:
 
                     st.error(
-                        f"Gagal menyimpan: {e}"
+                        f"Gagal menyimpan data: {e}"
                     )
 
 # =========================================================
@@ -548,8 +507,12 @@ elif menu == "Daftar Buku Tamu":
 
     if not df.empty:
 
+        # =====================================================
+        # SEARCH
+        # =====================================================
+
         search = st.text_input(
-            "🔍 Cari Data"
+            "🔍 Cari Nama / OPD"
         )
 
         if search:
@@ -572,6 +535,8 @@ elif menu == "Daftar Buku Tamu":
             use_container_width=True,
             height=400
         )
+
+        st.divider()
 
         # =====================================================
         # DOWNLOAD
@@ -656,7 +621,7 @@ elif menu == "Daftar Buku Tamu":
         # PDF
         pdf_buffer = BytesIO()
 
-        doc_pdf = SimpleDocTemplate(
+        pdf_doc = SimpleDocTemplate(
             pdf_buffer,
             pagesize=letter
         )
@@ -673,7 +638,7 @@ elif menu == "Daftar Buku Tamu":
         elements.append(title)
 
         elements.append(
-            Spacer(1,12)
+            Spacer(1, 12)
         )
 
         pdf_data = [
@@ -684,15 +649,15 @@ elif menu == "Daftar Buku Tamu":
 
         pdf_table.setStyle(
             TableStyle([
-                ('BACKGROUND',(0,0),(-1,0),colors.grey),
-                ('TEXTCOLOR',(0,0),(-1,0),colors.white),
-                ('GRID',(0,0),(-1,-1),1,colors.black),
+                ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                ('GRID', (0,0), (-1,-1), 1, colors.black),
             ])
         )
 
         elements.append(pdf_table)
 
-        doc_pdf.build(elements)
+        pdf_doc.build(elements)
 
         with d4:
 
@@ -705,7 +670,7 @@ elif menu == "Daftar Buku Tamu":
         st.divider()
 
         # =====================================================
-        # FOTO
+        # FOTO TAMU
         # =====================================================
 
         st.subheader("📷 Dokumentasi Tamu")
@@ -721,18 +686,18 @@ elif menu == "Daftar Buku Tamu":
                 with c1:
 
                     st.write(
-                        f"🏢 {row['opd']}"
+                        f"🏢 OPD : {row['opd']}"
                     )
 
                     st.write(
-                        f"📞 {row['nomor_hp']}"
+                        f"📞 HP : {row['nomor_hp']}"
                     )
 
                     st.write(
-                        f"🏛️ {row['bidang']}"
+                        f"🏛️ Bidang : {row['bidang']}"
                     )
 
-                    foto = row["foto"]
+                    foto = str(row["foto"])
 
                     if os.path.exists(foto):
 
@@ -742,9 +707,15 @@ elif menu == "Daftar Buku Tamu":
                             use_container_width=True
                         )
 
+                    else:
+
+                        st.warning(
+                            "Foto tidak ditemukan."
+                        )
+
                 with c2:
 
-                    spt = row["spt"]
+                    spt = str(row["spt"])
 
                     if os.path.exists(spt):
 
@@ -754,11 +725,17 @@ elif menu == "Daftar Buku Tamu":
                             use_container_width=True
                         )
 
+                    else:
+
+                        st.warning(
+                            "SPT tidak ditemukan."
+                        )
+
+        st.divider()
+
         # =====================================================
         # HAPUS DATA
         # =====================================================
-
-        st.divider()
 
         st.subheader("🗑️ Hapus Data")
 
@@ -767,9 +744,7 @@ elif menu == "Daftar Buku Tamu":
             df["nama"].unique()
         )
 
-        if st.button(
-            "🗑️ Hapus"
-        ):
+        if st.button("🗑️ Hapus"):
 
             try:
 
@@ -795,6 +770,10 @@ elif menu == "Daftar Buku Tamu":
                     f"Gagal hapus data: {e}"
                 )
 
+    else:
+
+        st.info("Belum ada data.")
+
 # =========================================================
 # STATISTIK
 # =========================================================
@@ -812,7 +791,9 @@ elif menu == "Ringkasan Statistik":
             errors="coerce"
         )
 
-        grafik = (
+        st.subheader("📈 Statistik Kunjungan")
+
+        statistik = (
             df.groupby(
                 df["tanggal"].dt.date
             )
@@ -820,16 +801,16 @@ elif menu == "Ringkasan Statistik":
             .reset_index(name="Jumlah")
         )
 
-        fig = px.bar(
-            grafik,
-            x="tanggal",
-            y="Jumlah"
+        statistik.columns = [
+            "Tanggal",
+            "Jumlah"
+        ]
+
+        st.bar_chart(
+            statistik.set_index("Tanggal")
         )
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
-        )
+        st.divider()
 
         st.subheader(
             "📸 Statistik Dokumentasi"
