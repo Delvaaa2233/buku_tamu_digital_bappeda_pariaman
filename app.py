@@ -1,19 +1,20 @@
 # =========================================================
 # BUKU TAMU DIGITAL BAPPEDA KOTA PARIAMAN
-# FINAL VERSION - NO ERROR
+# FINAL PERFECT VERSION - STREAMLIT CLOUD READY
+# NO ERROR VERSION
 # =========================================================
 
-# requirements.txt
-# ---------------------------------------------------------
+# =========================================================
+# REQUIREMENTS.TXT
+# =========================================================
 # streamlit
+# pandas
 # gspread
 # google-auth
-# pandas
 # openpyxl
+# pillow
 # python-docx
 # reportlab
-# pillow
-# ---------------------------------------------------------
 
 # =========================================================
 # IMPORT
@@ -27,19 +28,39 @@ import os
 from io import BytesIO
 from datetime import datetime
 from google.oauth2.service_account import Credentials
-from docx import Document
 
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    Table,
-    TableStyle
-)
+# =========================================================
+# SAFE IMPORT DOCX
+# =========================================================
 
-from reportlab.lib import colors
-from reportlab.lib.styles import getSampleStyleSheet
-from reportlab.lib.pagesizes import letter
+try:
+    from docx import Document
+    DOCX_AVAILABLE = True
+except:
+    DOCX_AVAILABLE = False
+
+# =========================================================
+# SAFE IMPORT PDF
+# =========================================================
+
+try:
+
+    from reportlab.platypus import (
+        SimpleDocTemplate,
+        Paragraph,
+        Spacer,
+        Table,
+        TableStyle
+    )
+
+    from reportlab.lib import colors
+    from reportlab.lib.styles import getSampleStyleSheet
+    from reportlab.lib.pagesizes import letter
+
+    PDF_AVAILABLE = True
+
+except:
+    PDF_AVAILABLE = False
 
 # =========================================================
 # PAGE CONFIG
@@ -52,7 +73,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# CSS
+# CUSTOM CSS
 # =========================================================
 
 st.markdown("""
@@ -67,11 +88,11 @@ html, body, [class*="css"] {
 }
 
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg,#081F4D,#0A2C6B);
+    background: linear-gradient(180deg,#0B1F4D,#123A82);
 }
 
 h1, h2, h3 {
-    color: #1E3A8A;
+    color: #0B1F4D;
 }
 
 .stButton>button {
@@ -79,7 +100,7 @@ h1, h2, h3 {
     color: white;
     border-radius: 10px;
     border: none;
-    padding: 0.7rem;
+    padding: 0.75rem;
     font-weight: bold;
     width: 100%;
 }
@@ -89,13 +110,21 @@ h1, h2, h3 {
     color: white;
     border-radius: 10px;
     border: none;
-    padding: 0.7rem;
+    padding: 0.75rem;
     font-weight: bold;
     width: 100%;
 }
 
 .block-container {
     padding-top: 2rem;
+}
+
+.card {
+    background: white;
+    padding: 25px;
+    border-radius: 15px;
+    box-shadow: 0px 3px 12px rgba(0,0,0,0.08);
+    margin-bottom: 20px;
 }
 
 </style>
@@ -105,25 +134,35 @@ h1, h2, h3 {
 # GOOGLE SHEETS
 # =========================================================
 
-scope = [
-    "https://www.googleapis.com/auth/spreadsheets",
-    "https://www.googleapis.com/auth/drive"
-]
+try:
 
-creds_dict = st.secrets["gcp_service_account"]
+    scope = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+    ]
 
-creds = Credentials.from_service_account_info(
-    creds_dict,
-    scopes=scope
-)
+    creds_dict = st.secrets["gcp_service_account"]
 
-client = gspread.authorize(creds)
+    creds = Credentials.from_service_account_info(
+        creds_dict,
+        scopes=scope
+    )
 
-SPREADSHEET_ID = "1lBGe8ZTLBICZz5dbDgPqwNiv4FO-CEFmcSnczYNUxz8"
+    client = gspread.authorize(creds)
 
-sheet = client.open_by_key(
-    SPREADSHEET_ID
-).sheet1
+    SPREADSHEET_ID = "1lBGe8ZTLBICZz5dbDgPqwNiv4FO-CEFmcSnczYNUxz8"
+
+    sheet = client.open_by_key(
+        SPREADSHEET_ID
+    ).sheet1
+
+except Exception as e:
+
+    st.error(
+        f"Gagal koneksi Google Spreadsheet: {e}"
+    )
+
+    st.stop()
 
 # =========================================================
 # FOLDER FOTO
@@ -135,18 +174,14 @@ if not os.path.exists(FOTO_DIR):
     os.makedirs(FOTO_DIR)
 
 # =========================================================
-# HEADER
+# SIDEBAR
 # =========================================================
 
 st.sidebar.title("📘 Buku Tamu Digital")
 st.sidebar.caption("BAPPEDA Kota Pariaman")
 
-# =========================================================
-# MENU
-# =========================================================
-
 menu = st.sidebar.radio(
-    "📌 Menu Utama",
+    "📌 Menu",
     [
         "Dashboard",
         "Input Buku Tamu",
@@ -177,7 +212,7 @@ def load_data():
                 columns=headers
             )
 
-            expected_columns = [
+            expected_cols = [
                 "tanggal",
                 "nama",
                 "opd",
@@ -187,7 +222,7 @@ def load_data():
                 "spt"
             ]
 
-            for col in expected_columns:
+            for col in expected_cols:
 
                 if col not in df.columns:
                     df[col] = ""
@@ -201,7 +236,7 @@ def load_data():
     except Exception as e:
 
         st.error(
-            f"Gagal mengambil data: {e}"
+            f"Gagal memuat data: {e}"
         )
 
         return pd.DataFrame()
@@ -227,20 +262,20 @@ if menu == "Dashboard":
 
         total_tamu = len(df)
 
-        tamu_hari_ini = len(
+        harian = len(
             df[
                 df["tanggal"].dt.date == today.date()
             ]
         )
 
-        tamu_bulan_ini = len(
+        bulanan = len(
             df[
                 (df["tanggal"].dt.month == today.month) &
                 (df["tanggal"].dt.year == today.year)
             ]
         )
 
-        tamu_tahun_ini = len(
+        tahunan = len(
             df[
                 df["tanggal"].dt.year == today.year
             ]
@@ -249,34 +284,18 @@ if menu == "Dashboard":
         col1, col2, col3, col4 = st.columns(4)
 
         with col1:
-            st.metric(
-                "👥 Total Tamu",
-                total_tamu
-            )
+            st.metric("👥 Total Tamu", total_tamu)
 
         with col2:
-            st.metric(
-                "📅 Hari Ini",
-                tamu_hari_ini
-            )
+            st.metric("📅 Hari Ini", harian)
 
         with col3:
-            st.metric(
-                "🗓️ Bulan Ini",
-                tamu_bulan_ini
-            )
+            st.metric("🗓️ Bulan Ini", bulanan)
 
         with col4:
-            st.metric(
-                "📆 Tahun Ini",
-                tamu_tahun_ini
-            )
+            st.metric("📆 Tahun Ini", tahunan)
 
         st.divider()
-
-        # =====================================================
-        # GRAFIK
-        # =====================================================
 
         st.subheader("📈 Grafik Kunjungan")
 
@@ -297,11 +316,7 @@ if menu == "Dashboard":
 
         st.divider()
 
-        # =====================================================
-        # DATA TERBARU
-        # =====================================================
-
-        st.subheader("📋 Data Tamu Terbaru")
+        st.subheader("📋 Data Terbaru")
 
         st.dataframe(
             df.tail(10),
@@ -314,7 +329,7 @@ if menu == "Dashboard":
         st.info("Belum ada data tamu.")
 
 # =========================================================
-# INPUT DATA
+# INPUT BUKU TAMU
 # =========================================================
 
 elif menu == "Input Buku Tamu":
@@ -322,7 +337,7 @@ elif menu == "Input Buku Tamu":
     st.title("📝 Input Buku Tamu")
 
     st.warning(
-        "Semua form wajib diisi."
+        "⚠️ Semua form wajib diisi."
     )
 
     with st.form(
@@ -331,6 +346,10 @@ elif menu == "Input Buku Tamu":
     ):
 
         col1, col2 = st.columns(2)
+
+        # =====================================================
+        # KOLOM 1
+        # =====================================================
 
         with col1:
 
@@ -356,6 +375,10 @@ elif menu == "Input Buku Tamu":
                 "Nomor HP *"
             )
 
+        # =====================================================
+        # KOLOM 2
+        # =====================================================
+
         with col2:
 
             bidang = st.selectbox(
@@ -378,26 +401,24 @@ elif menu == "Input Buku Tamu":
                 "📄 Foto SPT *"
             )
 
-        # =====================================================
-        # PREVIEW FOTO
-        # =====================================================
-
         st.subheader("👁️ Preview Foto")
 
-        p1, p2 = st.columns(2)
+        prev1, prev2 = st.columns(2)
 
-        with p1:
+        with prev1:
 
             if foto_tamu:
+
                 st.image(
                     foto_tamu,
                     caption="Foto Tamu",
                     use_container_width=True
                 )
 
-        with p2:
+        with prev2:
 
             if foto_spt:
+
                 st.image(
                     foto_spt,
                     caption="Foto SPT",
@@ -442,7 +463,10 @@ elif menu == "Input Buku Tamu":
                         .replace("/", "_")
                     )
 
+                    # =================================================
                     # FOTO TAMU
+                    # =================================================
+
                     foto_path = (
                         f"{FOTO_DIR}/"
                         f"foto_{nama_file}.png"
@@ -457,7 +481,10 @@ elif menu == "Input Buku Tamu":
                             foto_tamu.getbuffer()
                         )
 
+                    # =================================================
                     # FOTO SPT
+                    # =================================================
+
                     spt_path = (
                         f"{FOTO_DIR}/"
                         f"spt_{nama_file}.png"
@@ -472,7 +499,10 @@ elif menu == "Input Buku Tamu":
                             foto_spt.getbuffer()
                         )
 
-                    # SIMPAN DATA
+                    # =================================================
+                    # SIMPAN GOOGLE SHEETS
+                    # =================================================
+
                     sheet.append_row([
                         tanggal,
                         nama,
@@ -484,7 +514,7 @@ elif menu == "Input Buku Tamu":
                     ])
 
                     st.success(
-                        "Data berhasil disimpan."
+                        "✅ Data berhasil disimpan."
                     )
 
                     st.balloons()
@@ -560,7 +590,10 @@ elif menu == "Daftar Buku Tamu":
                 "text/csv"
             )
 
+        # =====================================================
         # EXCEL
+        # =====================================================
+
         excel_buffer = BytesIO()
 
         with pd.ExcelWriter(
@@ -581,96 +614,134 @@ elif menu == "Daftar Buku Tamu":
                 "data_buku_tamu.xlsx"
             )
 
+        # =====================================================
         # WORD
-        doc = Document()
-
-        doc.add_heading(
-            "Data Buku Tamu",
-            level=1
-        )
-
-        table = doc.add_table(
-            rows=1,
-            cols=len(df.columns)
-        )
-
-        hdr = table.rows[0].cells
-
-        for i, col in enumerate(df.columns):
-            hdr[i].text = col
-
-        for _, row in df.iterrows():
-
-            cells = table.add_row().cells
-
-            for i, value in enumerate(row):
-                cells[i].text = str(value)
-
-        word_buffer = BytesIO()
-
-        doc.save(word_buffer)
+        # =====================================================
 
         with d3:
 
-            st.download_button(
-                "⬇️ Word",
-                word_buffer.getvalue(),
-                "data_buku_tamu.docx"
-            )
+            if DOCX_AVAILABLE:
 
+                try:
+
+                    doc = Document()
+
+                    doc.add_heading(
+                        "Data Buku Tamu",
+                        level=1
+                    )
+
+                    table = doc.add_table(
+                        rows=1,
+                        cols=len(df.columns)
+                    )
+
+                    hdr = table.rows[0].cells
+
+                    for i, col in enumerate(df.columns):
+                        hdr[i].text = col
+
+                    for _, row in df.iterrows():
+
+                        cells = table.add_row().cells
+
+                        for i, value in enumerate(row):
+                            cells[i].text = str(value)
+
+                    word_buffer = BytesIO()
+
+                    doc.save(word_buffer)
+
+                    st.download_button(
+                        "⬇️ Word",
+                        word_buffer.getvalue(),
+                        "data_buku_tamu.docx"
+                    )
+
+                except Exception as e:
+
+                    st.warning(
+                        f"Gagal membuat Word: {e}"
+                    )
+
+            else:
+
+                st.warning(
+                    "python-docx belum tersedia."
+                )
+
+        # =====================================================
         # PDF
-        pdf_buffer = BytesIO()
-
-        pdf_doc = SimpleDocTemplate(
-            pdf_buffer,
-            pagesize=letter
-        )
-
-        styles = getSampleStyleSheet()
-
-        elements = []
-
-        title = Paragraph(
-            "Data Buku Tamu",
-            styles["Heading1"]
-        )
-
-        elements.append(title)
-
-        elements.append(
-            Spacer(1, 12)
-        )
-
-        pdf_data = [
-            df.columns.tolist()
-        ] + df.values.tolist()
-
-        pdf_table = Table(pdf_data)
-
-        pdf_table.setStyle(
-            TableStyle([
-                ('BACKGROUND', (0,0), (-1,0), colors.grey),
-                ('TEXTCOLOR', (0,0), (-1,0), colors.white),
-                ('GRID', (0,0), (-1,-1), 1, colors.black),
-            ])
-        )
-
-        elements.append(pdf_table)
-
-        pdf_doc.build(elements)
+        # =====================================================
 
         with d4:
 
-            st.download_button(
-                "⬇️ PDF",
-                pdf_buffer.getvalue(),
-                "data_buku_tamu.pdf"
-            )
+            if PDF_AVAILABLE:
+
+                try:
+
+                    pdf_buffer = BytesIO()
+
+                    pdf_doc = SimpleDocTemplate(
+                        pdf_buffer,
+                        pagesize=letter
+                    )
+
+                    styles = getSampleStyleSheet()
+
+                    elements = []
+
+                    title = Paragraph(
+                        "Data Buku Tamu",
+                        styles["Heading1"]
+                    )
+
+                    elements.append(title)
+
+                    elements.append(
+                        Spacer(1, 12)
+                    )
+
+                    pdf_data = [
+                        df.columns.tolist()
+                    ] + df.values.tolist()
+
+                    pdf_table = Table(pdf_data)
+
+                    pdf_table.setStyle(
+                        TableStyle([
+                            ('BACKGROUND', (0,0), (-1,0), colors.grey),
+                            ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+                            ('GRID', (0,0), (-1,-1), 1, colors.black),
+                        ])
+                    )
+
+                    elements.append(pdf_table)
+
+                    pdf_doc.build(elements)
+
+                    st.download_button(
+                        "⬇️ PDF",
+                        pdf_buffer.getvalue(),
+                        "data_buku_tamu.pdf"
+                    )
+
+                except Exception as e:
+
+                    st.warning(
+                        f"Gagal membuat PDF: {e}"
+                    )
+
+            else:
+
+                st.warning(
+                    "reportlab belum tersedia."
+                )
 
         st.divider()
 
         # =====================================================
-        # FOTO TAMU
+        # DOKUMENTASI
         # =====================================================
 
         st.subheader("📷 Dokumentasi Tamu")
@@ -697,7 +768,9 @@ elif menu == "Daftar Buku Tamu":
                         f"🏛️ Bidang : {row['bidang']}"
                     )
 
-                    foto = str(row["foto"])
+                    foto = str(
+                        row["foto"]
+                    )
 
                     if os.path.exists(foto):
 
@@ -715,7 +788,9 @@ elif menu == "Daftar Buku Tamu":
 
                 with c2:
 
-                    spt = str(row["spt"])
+                    spt = str(
+                        row["spt"]
+                    )
 
                     if os.path.exists(spt):
 
@@ -728,7 +803,7 @@ elif menu == "Daftar Buku Tamu":
                     else:
 
                         st.warning(
-                            "SPT tidak ditemukan."
+                            "Foto SPT tidak ditemukan."
                         )
 
         st.divider()
@@ -772,7 +847,9 @@ elif menu == "Daftar Buku Tamu":
 
     else:
 
-        st.info("Belum ada data.")
+        st.info(
+            "Belum ada data tamu."
+        )
 
 # =========================================================
 # STATISTIK
@@ -791,7 +868,9 @@ elif menu == "Ringkasan Statistik":
             errors="coerce"
         )
 
-        st.subheader("📈 Statistik Kunjungan")
+        st.subheader(
+            "📈 Statistik Kunjungan"
+        )
 
         statistik = (
             df.groupby(
@@ -848,7 +927,7 @@ elif menu == "Ringkasan Statistik":
             )
 
             st.metric(
-                "📄 Total SPT",
+                "📄 Total Foto SPT",
                 total_spt
             )
 
