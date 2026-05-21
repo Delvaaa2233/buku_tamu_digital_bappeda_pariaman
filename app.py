@@ -1,16 +1,3 @@
-# REQUIREMENTS.TXT
-
-```txt id="n6p2zi"
-streamlit
-pandas
-gspread
-google-auth
-openpyxl
-python-docx
-reportlab
-Pillow
-```
-
 # APP.PY — FULL PERFECT PROFESSIONAL VERSION 2026
 
 ```python id="44cf9i"
