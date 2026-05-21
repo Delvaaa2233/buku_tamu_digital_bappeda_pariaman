@@ -1,4 +1,3 @@
-```python
 # =========================================================
 # BUKU TAMU DIGITAL BAPPEDA KOTA PARIAMAN
 # FULL PROFESSIONAL VERSION 2026
