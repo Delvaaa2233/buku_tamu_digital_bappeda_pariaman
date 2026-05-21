@@ -1,12 +1,18 @@
 # =========================================================
 # BUKU TAMU DIGITAL BAPPEDA KOTA PARIAMAN
-# FINAL PERFECT VERSION - STREAMLIT CLOUD READY
-# NO ERROR VERSION
+# FULL PROFESSIONAL VERSION 2026
+# SUPPORT:
+# - ANDROID
+# - IOS / IPHONE
+# - WINDOWS
+# - TABLET
+# - STREAMLIT CLOUD
 # =========================================================
 
 # =========================================================
 # REQUIREMENTS.TXT
 # =========================================================
+#
 # streamlit
 # pandas
 # gspread
@@ -15,6 +21,8 @@
 # pillow
 # python-docx
 # reportlab
+#
+# =========================================================
 
 # =========================================================
 # IMPORT
@@ -24,13 +32,14 @@ import streamlit as st
 import pandas as pd
 import gspread
 import os
+import re
 
 from io import BytesIO
 from datetime import datetime
 from google.oauth2.service_account import Credentials
 
 # =========================================================
-# SAFE IMPORT DOCX
+# OPTIONAL IMPORT DOCX
 # =========================================================
 
 try:
@@ -40,7 +49,7 @@ except:
     DOCX_AVAILABLE = False
 
 # =========================================================
-# SAFE IMPORT PDF
+# OPTIONAL IMPORT PDF
 # =========================================================
 
 try:
@@ -73,7 +82,7 @@ st.set_page_config(
 )
 
 # =========================================================
-# CUSTOM CSS FINAL SIDEBAR
+# CUSTOM CSS
 # =========================================================
 
 st.markdown("""
@@ -88,7 +97,7 @@ html, body, [class*="css"] {
 }
 
 /* =====================================================
-BACKGROUND UTAMA
+MAIN BACKGROUND
 ===================================================== */
 
 .main {
@@ -108,7 +117,7 @@ section[data-testid="stSidebar"] {
 }
 
 /* =====================================================
-TEXT SIDEBAR
+SIDEBAR TEXT
 ===================================================== */
 
 section[data-testid="stSidebar"] * {
@@ -116,11 +125,10 @@ section[data-testid="stSidebar"] * {
 }
 
 /* =====================================================
-JUDUL SIDEBAR
+TITLE
 ===================================================== */
 
 .sidebar-title {
-    color: white !important;
     font-size: 30px;
     font-weight: 700;
     margin-bottom: 5px;
@@ -131,95 +139,45 @@ SUBTITLE
 ===================================================== */
 
 .sidebar-subtitle {
-    color: #D1D5DB !important;
     font-size: 15px;
+    color: #D1D5DB !important;
     margin-bottom: 25px;
-}
-
-/* =====================================================
-RADIO BUTTON MENU
-===================================================== */
-
-.stRadio label {
-    color: white !important;
-    font-size: 18px !important;
-    font-weight: 500;
-}
-
-/* =====================================================
-MENU TEXT
-===================================================== */
-
-.st-emotion-cache-16txtl3 {
-    color: white !important;
-}
-
-/* =====================================================
-LABEL MENU
-===================================================== */
-
-.st-emotion-cache-1cypcdb {
-    color: white !important;
-}
-
-/* =====================================================
-HEADER
-===================================================== */
-
-h1, h2, h3 {
-    color: #0B1F4D;
 }
 
 /* =====================================================
 BUTTON
 ===================================================== */
 
-.stButton>button {
+.stButton > button {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem;
+    font-weight: bold;
+    color: white !important;
     background: linear-gradient(
         90deg,
         #2563EB,
         #1D4ED8
     );
-
-    color: white !important;
-
-    border-radius: 10px;
-    border: none;
-
-    padding: 0.75rem;
-
-    font-weight: bold;
-    width: 100%;
 }
 
 /* =====================================================
 DOWNLOAD BUTTON
 ===================================================== */
 
-.stDownloadButton>button {
+.stDownloadButton > button {
+    width: 100%;
+    border: none;
+    border-radius: 10px;
+    padding: 0.8rem;
+    font-weight: bold;
+    color: white !important;
     background: linear-gradient(
         90deg,
         #10B981,
         #059669
     );
-
-    color: white !important;
-
-    border-radius: 10px;
-    border: none;
-
-    padding: 0.75rem;
-
-    font-weight: bold;
-    width: 100%;
-}
-
-/* =====================================================
-BLOCK CONTAINER
-===================================================== */
-
-.block-container {
-    padding-top: 2rem;
 }
 
 /* =====================================================
@@ -228,14 +186,10 @@ CARD
 
 .card {
     background: white;
-
-    padding: 25px;
-
+    padding: 20px;
     border-radius: 15px;
-
     box-shadow:
-        0px 3px 12px rgba(0,0,0,0.08);
-
+        0px 3px 10px rgba(0,0,0,0.08);
     margin-bottom: 20px;
 }
 
@@ -243,7 +197,7 @@ CARD
 """, unsafe_allow_html=True)
 
 # =========================================================
-# GOOGLE SHEETS
+# GOOGLE SHEETS CONNECTION
 # =========================================================
 
 try:
@@ -312,7 +266,7 @@ menu = st.sidebar.radio(
 # =========================================================
 # LOAD DATA
 # =========================================================
-0
+
 def load_data():
 
     try:
@@ -348,9 +302,7 @@ def load_data():
 
             return df
 
-        else:
-
-            return pd.DataFrame()
+        return pd.DataFrame()
 
     except Exception as e:
 
@@ -359,6 +311,22 @@ def load_data():
         )
 
         return pd.DataFrame()
+
+# =========================================================
+# SAFE FILE NAME
+# =========================================================
+
+def safe_filename(text):
+
+    text = text.strip()
+
+    text = re.sub(
+        r'[^a-zA-Z0-9_]',
+        '_',
+        text
+    )
+
+    return text
 
 # =========================================================
 # DASHBOARD
@@ -459,6 +427,16 @@ elif menu == "Input Buku Tamu":
         "⚠️ Semua form wajib diisi."
     )
 
+    st.markdown("""
+    ### 📸 Petunjuk Foto
+    - Android/iPhone:
+      pilih Kamera untuk foto langsung
+    - Bisa menggunakan kamera depan
+      atau belakang
+    - Bisa upload dari galeri
+    - Support Windows webcam
+    """)
+
     with st.form(
         "form_tamu",
         clear_on_submit=True
@@ -467,13 +445,13 @@ elif menu == "Input Buku Tamu":
         col1, col2 = st.columns(2)
 
         # =====================================================
-        # KOLOM 1
+        # KOLOM KIRI
         # =====================================================
 
         with col1:
 
             tanggal = datetime.now().strftime(
-                "%Y-%m-%d"
+                "%Y-%m-%d %H:%M:%S"
             )
 
             st.text_input(
@@ -495,7 +473,7 @@ elif menu == "Input Buku Tamu":
             )
 
         # =====================================================
-        # KOLOM 2
+        # KOLOM KANAN
         # =====================================================
 
         with col2:
@@ -512,19 +490,27 @@ elif menu == "Input Buku Tamu":
                 ]
             )
 
-            foto_tamu = st.camera_input(
-                "📷 Foto Tamu *"
+            foto_tamu = st.file_uploader(
+                "📷 Upload / Ambil Foto Tamu *",
+                type=["jpg", "jpeg", "png"],
+                key="foto_tamu"
             )
 
-            foto_spt = st.camera_input(
-                "📄 Foto SPT *"
+            foto_spt = st.file_uploader(
+                "📄 Upload / Ambil Foto SPT *",
+                type=["jpg", "jpeg", "png"],
+                key="foto_spt"
             )
+
+        # =====================================================
+        # PREVIEW FOTO
+        # =====================================================
 
         st.subheader("👁️ Preview Foto")
 
-        prev1, prev2 = st.columns(2)
+        p1, p2 = st.columns(2)
 
-        with prev1:
+        with p1:
 
             if foto_tamu:
 
@@ -534,7 +520,7 @@ elif menu == "Input Buku Tamu":
                     use_container_width=True
                 )
 
-        with prev2:
+        with p2:
 
             if foto_spt:
 
@@ -543,6 +529,10 @@ elif menu == "Input Buku Tamu":
                     caption="Foto SPT",
                     use_container_width=True
                 )
+
+        # =====================================================
+        # SUBMIT
+        # =====================================================
 
         submit = st.form_submit_button(
             "💾 Simpan Data"
@@ -567,28 +557,36 @@ elif menu == "Input Buku Tamu":
                 st.error("Bidang wajib dipilih.")
 
             elif foto_tamu is None:
-                st.error("Foto tamu wajib diambil.")
+                st.error("Foto tamu wajib diupload.")
 
             elif foto_spt is None:
-                st.error("Foto SPT wajib diambil.")
+                st.error("Foto SPT wajib diupload.")
 
             else:
 
                 try:
 
-                    nama_file = (
+                    nama_file = safe_filename(
                         nama
-                        .replace(" ", "_")
-                        .replace("/", "_")
+                    )
+
+                    timestamp = datetime.now().strftime(
+                        "%Y%m%d%H%M%S"
                     )
 
                     # =================================================
                     # FOTO TAMU
                     # =================================================
 
+                    ext_foto = (
+                        foto_tamu.name
+                        .split(".")[-1]
+                        .lower()
+                    )
+
                     foto_path = (
                         f"{FOTO_DIR}/"
-                        f"foto_{nama_file}.png"
+                        f"foto_{nama_file}_{timestamp}.{ext_foto}"
                     )
 
                     with open(
@@ -604,9 +602,15 @@ elif menu == "Input Buku Tamu":
                     # FOTO SPT
                     # =================================================
 
+                    ext_spt = (
+                        foto_spt.name
+                        .split(".")[-1]
+                        .lower()
+                    )
+
                     spt_path = (
                         f"{FOTO_DIR}/"
-                        f"spt_{nama_file}.png"
+                        f"spt_{nama_file}_{timestamp}.{ext_spt}"
                     )
 
                     with open(
@@ -619,7 +623,7 @@ elif menu == "Input Buku Tamu":
                         )
 
                     # =================================================
-                    # SIMPAN GOOGLE SHEETS
+                    # SAVE TO SHEETS
                     # =================================================
 
                     sheet.append_row([
@@ -655,10 +659,6 @@ elif menu == "Daftar Buku Tamu":
     df = load_data()
 
     if not df.empty:
-
-        # =====================================================
-        # SEARCH
-        # =====================================================
 
         search = st.text_input(
             "🔍 Cari Nama / OPD"
@@ -696,6 +696,7 @@ elif menu == "Daftar Buku Tamu":
         d1, d2, d3, d4 = st.columns(4)
 
         # CSV
+
         csv = df.to_csv(
             index=False
         ).encode("utf-8")
@@ -783,12 +784,6 @@ elif menu == "Daftar Buku Tamu":
                         f"Gagal membuat Word: {e}"
                     )
 
-            else:
-
-                st.warning(
-                    "python-docx belum tersedia."
-                )
-
         # =====================================================
         # PDF
         # =====================================================
@@ -825,7 +820,9 @@ elif menu == "Daftar Buku Tamu":
                         df.columns.tolist()
                     ] + df.values.tolist()
 
-                    pdf_table = Table(pdf_data)
+                    pdf_table = Table(
+                        pdf_data
+                    )
 
                     pdf_table.setStyle(
                         TableStyle([
@@ -835,9 +832,13 @@ elif menu == "Daftar Buku Tamu":
                         ])
                     )
 
-                    elements.append(pdf_table)
+                    elements.append(
+                        pdf_table
+                    )
 
-                    pdf_doc.build(elements)
+                    pdf_doc.build(
+                        elements
+                    )
 
                     st.download_button(
                         "⬇️ PDF",
@@ -851,16 +852,10 @@ elif menu == "Daftar Buku Tamu":
                         f"Gagal membuat PDF: {e}"
                     )
 
-            else:
-
-                st.warning(
-                    "reportlab belum tersedia."
-                )
-
         st.divider()
 
         # =====================================================
-        # DOKUMENTASI
+        # DOKUMENTASI FOTO
         # =====================================================
 
         st.subheader("📷 Dokumentasi Tamu")
@@ -987,10 +982,6 @@ elif menu == "Ringkasan Statistik":
             errors="coerce"
         )
 
-        st.subheader(
-            "📈 Statistik Kunjungan"
-        )
-
         statistik = (
             df.groupby(
                 df["tanggal"].dt.date
@@ -1003,6 +994,10 @@ elif menu == "Ringkasan Statistik":
             "Tanggal",
             "Jumlah"
         ]
+
+        st.subheader(
+            "📈 Statistik Kunjungan"
+        )
 
         st.bar_chart(
             statistik.set_index("Tanggal")
