@@ -1,12 +1,9 @@
-# REQUIREMENTS.TXT
+streamlit>=1.35.0
+pandas>=2.2.2
+gspread>=6.1.2
+google-auth>=2.29.0
+openpyxl>=3.1.2
+python-docx>=1.1.0
+reportlab>=4.1.0
+Pillow>=10.3.0
 
-```txt id="n6p2zi"
-streamlit
-pandas
-gspread
-google-auth
-openpyxl
-python-docx
-reportlab
-Pillow
-```
