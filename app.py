@@ -966,23 +966,93 @@ elif menu == "Daftar Buku Tamu":
         )
 
 # =========================================================
-# STATISTIK
+# RINGKASAN STATISTIK
 # =========================================================
 
 elif menu == "Ringkasan Statistik":
 
-    st.title("📊 Ringkasan Statistik")
+    st.title("📊 Ringkasan Statistik Buku Tamu")
 
     df = load_data()
 
     if not df.empty:
+
+        # =====================================================
+        # FORMAT TANGGAL
+        # =====================================================
 
         df["tanggal"] = pd.to_datetime(
             df["tanggal"],
             errors="coerce"
         )
 
-        statistik = (
+        today = datetime.now()
+
+        # =====================================================
+        # HITUNG STATISTIK
+        # =====================================================
+
+        total_tamu = len(df)
+
+        tamu_hari_ini = len(
+            df[
+                df["tanggal"].dt.date
+                == today.date()
+            ]
+        )
+
+        tamu_bulan_ini = len(
+            df[
+                (df["tanggal"].dt.month == today.month)
+                &
+                (df["tanggal"].dt.year == today.year)
+            ]
+        )
+
+        tamu_tahun_ini = len(
+            df[
+                df["tanggal"].dt.year
+                == today.year
+            ]
+        )
+
+        # =====================================================
+        # KARTU STATISTIK
+        # =====================================================
+
+        st.subheader("📌 Statistik Utama")
+
+        c1, c2, c3, c4 = st.columns(4)
+
+        c1.metric(
+            "👥 Total Tamu",
+            total_tamu
+        )
+
+        c2.metric(
+            "📅 Hari Ini",
+            tamu_hari_ini
+        )
+
+        c3.metric(
+            "🗓️ Bulan Ini",
+            tamu_bulan_ini
+        )
+
+        c4.metric(
+            "📆 Tahun Ini",
+            tamu_tahun_ini
+        )
+
+        st.divider()
+
+        # =====================================================
+        # GRAFIK KUNJUNGAN
+        # =====================================================
+
+        st.subheader("📈 Grafik Kunjungan Tamu")
+
+        grafik = (
             df.groupby(
                 df["tanggal"].dt.date
             )
@@ -990,60 +1060,142 @@ elif menu == "Ringkasan Statistik":
             .reset_index(name="Jumlah")
         )
 
-        statistik.columns = [
+        grafik.columns = [
             "Tanggal",
             "Jumlah"
         ]
 
-        st.subheader(
-            "📈 Statistik Kunjungan"
-        )
-
-        st.bar_chart(
-            statistik.set_index("Tanggal")
+        st.line_chart(
+            grafik.set_index("Tanggal")
         )
 
         st.divider()
 
-        st.subheader(
-            "📸 Statistik Dokumentasi"
+        # =====================================================
+        # DOKUMENTASI VISUAL
+        # =====================================================
+
+        st.subheader("📷 Dokumentasi Tamu Terbaru")
+
+        st.caption(
+            "Menampilkan 10 dokumentasi tamu terbaru."
         )
 
-        col1, col2 = st.columns(2)
+        data_terbaru = (
+            df.sort_values(
+                by="tanggal",
+                ascending=False
+            )
+            .head(10)
+        )
 
-        with col1:
+        # =====================================================
+        # LOOP DATA
+        # =====================================================
 
-            total_foto = (
-                df["foto"]
-                .astype(str)
-                .apply(
-                    lambda x:
-                    os.path.exists(x)
+        for _, row in data_terbaru.iterrows():
+
+            st.markdown("---")
+
+            # =================================================
+            # INFORMASI TAMU
+            # =================================================
+
+            st.markdown(
+                f"""
+                ### 👤 {row['nama']}
+
+                🏢 **OPD / Instansi:** {row['opd']}
+
+                📞 **Nomor HP:** {row['nomor_hp']}
+
+                🏛️ **Bidang Tujuan:** {row['bidang']}
+
+                🕒 **Tanggal Kunjungan:** {row['tanggal']}
+                """
+            )
+
+            # =================================================
+            # FOTO
+            # =================================================
+
+            col1, col2 = st.columns(2)
+
+            # FOTO TAMU
+
+            with col1:
+
+                st.markdown(
+                    "#### 📸 Foto Tamu"
                 )
-                .sum()
-            )
 
-            st.metric(
-                "📷 Total Foto",
-                total_foto
-            )
+                try:
 
-        with col2:
+                    if (
+                        str(row["foto"]).strip()
+                        != ""
+                    ):
 
-            total_spt = (
-                df["spt"]
-                .astype(str)
-                .apply(
-                    lambda x:
-                    os.path.exists(x)
+                        foto_bytes = (
+                            base64.b64decode(
+                                row["foto"]
+                            )
+                        )
+
+                        st.image(
+                            foto_bytes,
+                            use_container_width=True
+                        )
+
+                    else:
+
+                        st.warning(
+                            "Foto tamu tidak tersedia."
+                        )
+
+                except Exception:
+
+                    st.error(
+                        "Foto tamu gagal ditampilkan."
+                    )
+
+            # FOTO SPT
+
+            with col2:
+
+                st.markdown(
+                    "#### 📄 Foto SPT"
                 )
-                .sum()
-            )
 
-            st.metric(
-                "📄 Total Foto SPT",
-                total_spt
-            )
+                try:
+
+                    if (
+                        str(row["spt"]).strip()
+                        != ""
+                    ):
+
+                        spt_bytes = (
+                            base64.b64decode(
+                                row["spt"]
+                            )
+                        )
+
+                        st.image(
+                            spt_bytes,
+                            use_container_width=True
+                        )
+
+                    else:
+
+                        st.warning(
+                            "Foto SPT tidak tersedia."
+                        )
+
+                except Exception:
+
+                    st.error(
+                        "Foto SPT gagal ditampilkan."
+                    )
 
     else:
 
