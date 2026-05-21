@@ -1,10 +1,12 @@
+# REQUIREMENTS.TXT
+
+```txt id="n6p2zi"
 streamlit
+pandas
 gspread
 google-auth
-google-auth-oauthlib
-google-auth-httplib2
-pandas
-pillow
-streamlit-drawable-canvas
-fpdf
 openpyxl
+python-docx
+reportlab
+Pillow
+```
