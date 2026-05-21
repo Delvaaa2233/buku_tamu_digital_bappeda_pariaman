@@ -521,4 +521,3 @@ elif menu == "Ringkasan Statistik":
     else:
 
         st.info("Belum ada data statistik.")
-```
